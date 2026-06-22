@@ -79,6 +79,18 @@
   .criativos-btn:hover { background: #378ADD; color: #fff; border-color: #378ADD; }
   .criativos-val { font-size: 13px; font-weight: 700; color: #185FA5; min-width: 22px; text-align: center; }
   .criativos-input { font-size: 13px; font-weight: 700; color: #185FA5; width: 38px; text-align: center; border: 1px solid #378ADD; border-radius: 5px; padding: 1px 4px; outline: none; font-family: inherit; background: #E6F1FB; }
+  .atend-input { font-size: 10px; font-weight: 500; color: #185FA5; border: 1px solid #378ADD; border-radius: 5px; padding: 2px 6px; outline: none; font-family: inherit; background: #E6F1FB; width: 100px; }
+
+  .modal-overlay { position: fixed; inset: 0; background: rgba(20,20,18,0.4); display: flex; align-items: center; justify-content: center; z-index: 1000; }
+  .modal-overlay.hidden { display: none; }
+  .modal-box { background: #fff; border-radius: 12px; padding: 20px 22px; width: 360px; max-width: 92vw; box-shadow: 0 12px 40px rgba(0,0,0,0.22); }
+  .modal-box h2 { font-size: 15px; font-weight: 600; margin-bottom: 16px; display: flex; align-items: center; gap: 7px; color: #1a1a18; }
+  .modal-box h2 i { color: #378ADD; }
+  .modal-field { margin-bottom: 11px; display: flex; flex-direction: column; gap: 4px; }
+  .modal-field label { font-size: 11px; color: #666; font-weight: 600; }
+  .modal-field input, .modal-field select { font-size: 13px; padding: 7px 10px; border: 1px solid #d3d1c7; border-radius: 8px; background: #fafaf8; color: #1a1a18; outline: none; font-family: inherit; }
+  .modal-field input:focus, .modal-field select:focus { border-color: #378ADD; background: #fff; }
+  .modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
 
   .footer { background: #fff; border-top: 1px solid #e0e0da; padding: 0.55rem 1.5rem; display: flex; gap: 14px; flex-wrap: wrap; align-items: center; font-size: 11px; color: #888; position: fixed; bottom: 0; width: 100%; z-index: 100; }
   .legend-item { display: inline-flex; align-items: center; gap: 4px; }
@@ -120,6 +132,7 @@
   </div>
   <div class="sep"></div>
   <button class="btn" id="undo-btn" onclick="undo()" disabled><i class="ti ti-arrow-back-up"></i> Desfazer</button>
+  <button class="btn btn-primary" onclick="openAddClientModal()"><i class="ti ti-user-plus"></i> Novo Cliente</button>
   <button class="btn btn-primary" onclick="exportData()"><i class="ti ti-download"></i> Exportar CSV</button>
 </div>
 
@@ -131,6 +144,46 @@
   <span class="legend-item"><span class="legend-dot" style="background:#BA7517;"></span>SEO</span>
   <span class="legend-item"><span class="legend-dot" style="background:#993556;"></span>Rede Social</span>
   <span class="hint"><i class="ti ti-pencil"></i> Clique no nome para editar &nbsp;·&nbsp; Arraste para mover &nbsp;·&nbsp; +/- para ajustar criativos</span>
+</div>
+
+<div class="modal-overlay hidden" id="add-client-modal">
+  <div class="modal-box">
+    <h2><i class="ti ti-user-plus"></i> Novo Cliente</h2>
+    <div class="modal-field">
+      <label>Nome do cliente</label>
+      <input type="text" id="new-cliente-nome" placeholder="Ex: LOJA TAL">
+    </div>
+    <div class="modal-field">
+      <label>Escopo</label>
+      <select id="new-cliente-escopo">
+        <option value="INBOUND">Inbound</option>
+        <option value="PERFORMANCE" selected>Performance</option>
+        <option value="SEO">SEO</option>
+        <option value="REDE SOCIAL">Rede Social</option>
+      </select>
+    </div>
+    <div class="modal-field">
+      <label>Atendimento</label>
+      <input type="text" id="new-cliente-atend" list="atend-list" placeholder="Ex: Manu">
+      <datalist id="atend-list"></datalist>
+    </div>
+    <div class="modal-field">
+      <label>Designer</label>
+      <select id="new-cliente-designer"></select>
+    </div>
+    <div class="modal-field">
+      <label>Vídeo (opcional)</label>
+      <input type="text" id="new-cliente-video" placeholder="Ex: Cláudio">
+    </div>
+    <div class="modal-field">
+      <label>E-mail Design (opcional)</label>
+      <input type="text" id="new-cliente-email" placeholder="Ex: Cláudio">
+    </div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeAddClientModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="submitAddClient()"><i class="ti ti-check"></i> Adicionar</button>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -466,11 +519,57 @@ function renderBoard() {
       // Badges
       const meta = document.createElement("div");
       meta.className = "client-meta";
-      meta.innerHTML =
-        '<span class="badge badge-atend"><i class="ti ti-headset"></i>' + c.atend + '</span>' +
-        '<span class="badge ' + scopeClass(c.escopo) + '">' + c.escopo + '</span>' +
-        (c.video && c.video !== "-" ? '<span class="badge badge-video"><i class="ti ti-video"></i>' + c.video + '</span>' : "") +
-        (c.email && c.email !== "-" ? '<span class="badge badge-email"><i class="ti ti-mail"></i>' + c.email + '</span>' : "");
+
+      const atendBadge = document.createElement("span");
+      atendBadge.className = "badge badge-atend";
+      atendBadge.title = "Clique para alterar o atendimento";
+      atendBadge.style.cursor = "pointer";
+      const atendIconHTML = '<i class="ti ti-headset"></i>';
+      atendBadge.innerHTML = atendIconHTML + c.atend;
+      atendBadge.addEventListener("click", e => {
+        e.stopPropagation();
+        const inp = document.createElement("input");
+        inp.type = "text";
+        inp.className = "atend-input";
+        inp.value = c.atend;
+        atendBadge.replaceWith(inp);
+        inp.focus();
+        inp.select();
+        const commitAtend = () => {
+          const v = inp.value.trim() || c.atend;
+          if (v !== c.atend) saveHistory();
+          c.atend = v;
+          card.dataset.atend = v;
+          atendBadge.innerHTML = atendIconHTML + v;
+          inp.replaceWith(atendBadge);
+          scheduleSave();
+        };
+        inp.addEventListener("blur", commitAtend);
+        inp.addEventListener("keydown", ev => {
+          if (ev.key === "Enter") inp.blur();
+          if (ev.key === "Escape") { inp.value = c.atend; inp.blur(); }
+          ev.stopPropagation();
+        });
+      });
+      meta.appendChild(atendBadge);
+
+      const scopeBadge = document.createElement("span");
+      scopeBadge.className = "badge " + scopeClass(c.escopo);
+      scopeBadge.textContent = c.escopo;
+      meta.appendChild(scopeBadge);
+
+      if (c.video && c.video !== "-") {
+        const videoBadge = document.createElement("span");
+        videoBadge.className = "badge badge-video";
+        videoBadge.innerHTML = '<i class="ti ti-video"></i>' + c.video;
+        meta.appendChild(videoBadge);
+      }
+      if (c.email && c.email !== "-") {
+        const emailBadge = document.createElement("span");
+        emailBadge.className = "badge badge-email";
+        emailBadge.innerHTML = '<i class="ti ti-mail"></i>' + c.email;
+        meta.appendChild(emailBadge);
+      }
 
       // Criativos row
       const criRow = document.createElement("div");
@@ -652,6 +751,61 @@ function exportData() {
   a.download = "clientes-por-designer.csv";
   a.click();
 }
+
+// ===== Modal: Novo Cliente =====
+function openAddClientModal() {
+  document.getElementById("new-cliente-nome").value = "";
+  document.getElementById("new-cliente-escopo").value = "PERFORMANCE";
+  document.getElementById("new-cliente-atend").value = "";
+  document.getElementById("new-cliente-video").value = "";
+  document.getElementById("new-cliente-email").value = "";
+
+  const designerSelect = document.getElementById("new-cliente-designer");
+  designerSelect.innerHTML = designers.map(d => '<option value="' + d + '">' + d + '</option>').join("");
+
+  const atendSet = new Set();
+  designers.forEach(d => (state[d] || []).forEach(c => { if (c.atend) atendSet.add(c.atend); }));
+  document.getElementById("atend-list").innerHTML = [...atendSet].map(a => '<option value="' + a + '"></option>').join("");
+
+  document.getElementById("add-client-modal").classList.remove("hidden");
+  document.getElementById("new-cliente-nome").focus();
+}
+
+function closeAddClientModal() {
+  document.getElementById("add-client-modal").classList.add("hidden");
+}
+
+function submitAddClient() {
+  const nome = document.getElementById("new-cliente-nome").value.trim();
+  if (!nome) { alert("Digite o nome do cliente."); return; }
+
+  const jaExiste = designers.some(d => (state[d] || []).some(c => c.cliente.toLowerCase() === nome.toLowerCase()));
+  if (jaExiste) { alert("Já existe um cliente com esse nome."); return; }
+
+  const escopo = document.getElementById("new-cliente-escopo").value;
+  const atend = document.getElementById("new-cliente-atend").value.trim() || "Sem atendimento";
+  const designer = document.getElementById("new-cliente-designer").value;
+  const video = document.getElementById("new-cliente-video").value.trim() || "-";
+  const email = document.getElementById("new-cliente-email").value.trim() || "-";
+
+  saveHistory();
+  if (!state[designer]) state[designer] = [];
+  state[designer].push({ cliente: nome, escopo: escopo, atend: atend, designer: designer, video: video, email: email, criativos: 0 });
+
+  closeAddClientModal();
+  renderBoard();
+  scheduleSave();
+}
+
+document.getElementById("add-client-modal").addEventListener("click", e => {
+  if (e.target.id === "add-client-modal") closeAddClientModal();
+});
+document.addEventListener("keydown", e => {
+  if (e.key === "Escape" && !document.getElementById("add-client-modal").classList.contains("hidden")) {
+    closeAddClientModal();
+  }
+});
+// ===== Fim do modal =====
 
 (async function start() {
   await loadFromSheet();
