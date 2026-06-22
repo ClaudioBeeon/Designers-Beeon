@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Painel de Clientes por Designer — Beeon</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f3; color: #1a1a18; min-height: 100vh; }
+
+  .header { background: #fff; padding: 0.85rem 1.5rem; border-bottom: 1px solid #e0e0da; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; position: sticky; top: 0; z-index: 100; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
+  .header h1 { font-size: 16px; font-weight: 600; color: #1a1a18; display: flex; align-items: center; gap: 8px; }
+  .header h1 i { font-size: 18px; color: #378ADD; }
+  .stats { font-size: 12px; color: #888; background: #f1efe8; padding: 4px 10px; border-radius: 20px; }
+  .header-right { display: flex; align-items: center; gap: 8px; }
+  .sync-status { font-size: 11px; color: #3B6D11; background: #EAF3DE; padding: 4px 10px; border-radius: 20px; display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; transition: background 0.2s, color 0.2s; }
+  .sync-status i { font-size: 12px; }
+  .sync-status.saving { color: #854F0B; background: #FAEEDA; }
+  .sync-status.error { color: #993556; background: #FBEAF0; }
+
+  .toolbar { background: #fff; padding: 0.55rem 1.5rem; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; border-bottom: 1px solid #e0e0da; }
+  .toolbar input[type=text] { font-size: 13px; padding: 6px 11px; border: 1px solid #d3d1c7; border-radius: 8px; background: #fafaf8; color: #1a1a18; width: 200px; outline: none; transition: border-color 0.15s; }
+  .toolbar input[type=text]:focus { border-color: #378ADD; background: #fff; }
+  .toolbar select { font-size: 13px; padding: 6px 9px; border: 1px solid #d3d1c7; border-radius: 8px; background: #fafaf8; color: #1a1a18; outline: none; cursor: pointer; }
+  .toolbar label { font-size: 12px; color: #666; }
+  .sep { width: 1px; height: 24px; background: #e0e0da; margin: 0 4px; }
+  .sort-group { display: flex; align-items: center; gap: 6px; }
+  .sort-btn { font-size: 12px; padding: 5px 10px; border: 1px solid #d3d1c7; border-radius: 8px; background: #fafaf8; color: #555; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; transition: all 0.12s; font-family: inherit; }
+  .sort-btn:hover { background: #f1efe8; }
+  .sort-btn.active { background: #378ADD; color: #fff; border-color: #378ADD; }
+  .btn { font-size: 12px; padding: 6px 13px; border: 1px solid #d3d1c7; border-radius: 8px; background: #fff; color: #1a1a18; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; transition: background 0.12s; font-family: inherit; }
+  .btn:hover:not(:disabled) { background: #f1efe8; }
+  .btn:disabled { opacity: 0.4; cursor: default; }
+  .btn-primary { background: #378ADD; color: #fff; border-color: #378ADD; }
+  .btn-primary:hover { background: #2a6db5; }
+
+  .board { display: flex; gap: 14px; padding: 1.25rem 1.5rem 5rem; overflow-x: auto; min-height: calc(100vh - 130px); align-items: flex-start; }
+
+  .col { flex: 0 0 230px; display: flex; flex-direction: column; gap: 6px; }
+  .col-header { background: #fff; border-radius: 10px; padding: 10px 12px; border: 1px solid #e0e0da; display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+  .col-name-input { font-size: 13px; font-weight: 600; color: #1a1a18; background: transparent; border: 1px solid transparent; outline: none; width: 100%; padding: 2px 4px; border-radius: 4px; font-family: inherit; transition: background 0.12s, border 0.12s; }
+  .col-name-input:focus { background: #f5f5f3; border-color: #d3d1c7; }
+  .col-meta { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+  .col-count { font-size: 11px; color: #888; white-space: nowrap; background: #f1efe8; padding: 2px 7px; border-radius: 10px; }
+  .col-criativos-total { font-size: 11px; font-weight: 600; color: #185FA5; background: #E6F1FB; padding: 2px 7px; border-radius: 10px; white-space: nowrap; display: flex; align-items: center; gap: 3px; }
+
+  .drop-zone { flex: 1; min-height: 80px; border-radius: 10px; border: 2px dashed #d3d1c7; padding: 5px; display: flex; flex-direction: column; gap: 5px; transition: border-color 0.15s, background 0.15s; }
+  .drop-zone.drag-over { border-color: #378ADD; background: #EAF3FF; }
+
+  .client-card { background: #fff; border: 1px solid #e0e0da; border-radius: 9px; padding: 9px 11px; cursor: grab; user-select: none; transition: box-shadow 0.12s, opacity 0.15s; }
+  .client-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.08); border-color: #c4c2b8; }
+  .client-card:active { cursor: grabbing; }
+  .client-card.dragging { opacity: 0.35; }
+  .client-card.hidden { display: none; }
+
+  .card-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 4px; }
+  .client-name-input { font-size: 12px; font-weight: 600; color: #1a1a18; background: transparent; border: 1px solid transparent; outline: none; width: 100%; padding: 2px 3px; cursor: grab; line-height: 1.4; resize: none; font-family: inherit; border-radius: 4px; transition: background 0.12s, border-color 0.12s; overflow: hidden; }
+  .client-name-input:focus { cursor: text; background: #f5f5f3; border-color: #d3d1c7; }
+  .edit-icon { font-size: 12px; color: #bbb; flex-shrink: 0; cursor: pointer; opacity: 0; transition: opacity 0.1s; padding: 2px; }
+  .client-card:hover .edit-icon { opacity: 1; }
+  .edit-icon:hover { color: #378ADD; }
+
+  .client-meta { display: flex; gap: 3px; margin-top: 5px; flex-wrap: wrap; }
+  .badge { font-size: 10px; padding: 2px 6px; border-radius: 5px; line-height: 1.5; display: inline-flex; align-items: center; gap: 3px; font-weight: 500; }
+  .badge i { font-size: 10px; }
+  .badge-atend { background: #E6F1FB; color: #185FA5; }
+  .scope-inbound { background: #EAF3DE; color: #3B6D11; }
+  .scope-performance { background: #E6F1FB; color: #185FA5; }
+  .scope-seo { background: #FAEEDA; color: #854F0B; }
+  .scope-rede { background: #FBEAF0; color: #993556; }
+  .badge-video { background: #FAEEDA; color: #854F0B; }
+  .badge-email { background: #FBEAF0; color: #993556; }
+
+  .criativos-row { display: flex; align-items: center; gap: 6px; margin-top: 7px; padding-top: 6px; border-top: 1px solid #f0ede6; }
+  .criativos-label { font-size: 10px; color: #999; white-space: nowrap; }
+  .criativos-ctrl { display: flex; align-items: center; gap: 4px; margin-left: auto; }
+  .criativos-btn { width: 20px; height: 20px; border: 1px solid #d3d1c7; border-radius: 5px; background: #fafaf8; color: #555; cursor: pointer; font-size: 13px; line-height: 1; display: flex; align-items: center; justify-content: center; transition: background 0.1s; padding: 0; font-family: inherit; flex-shrink: 0; }
+  .criativos-btn:hover { background: #378ADD; color: #fff; border-color: #378ADD; }
+  .criativos-val { font-size: 13px; font-weight: 700; color: #185FA5; min-width: 22px; text-align: center; }
+  .criativos-input { font-size: 13px; font-weight: 700; color: #185FA5; width: 38px; text-align: center; border: 1px solid #378ADD; border-radius: 5px; padding: 1px 4px; outline: none; font-family: inherit; background: #E6F1FB; }
+
+  .footer { background: #fff; border-top: 1px solid #e0e0da; padding: 0.55rem 1.5rem; display: flex; gap: 14px; flex-wrap: wrap; align-items: center; font-size: 11px; color: #888; position: fixed; bottom: 0; width: 100%; z-index: 100; }
+  .legend-item { display: inline-flex; align-items: center; gap: 4px; }
+  .legend-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+  .hint { margin-left: auto; font-style: italic; color: #aaa; }
+
+  ::-webkit-scrollbar { height: 6px; width: 6px; }
+  ::-webkit-scrollbar-track { background: #f1efe8; }
+  ::-webkit-scrollbar-thumb { background: #c4c2b8; border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1><i class="ti ti-layout-columns"></i> Clientes por Designer — Beeon</h1>
+  <div class="header-right">
+    <span class="stats" id="stats-bar"></span>
+    <span class="sync-status" id="sync-status"><i class="ti ti-cloud"></i> Carregando...</span>
+  </div>
+</div>
+
+<div class="toolbar">
+  <input type="text" id="search" placeholder="Buscar cliente..." oninput="filterCards()">
+  <label>Escopo:</label>
+  <select id="filter-escopo" onchange="filterCards()">
+    <option value="">Todos</option>
+    <option value="INBOUND">Inbound</option>
+    <option value="PERFORMANCE">Performance</option>
+    <option value="SEO">SEO</option>
+    <option value="REDE SOCIAL">Rede Social</option>
+  </select>
+  <div class="sep"></div>
+  <div class="sort-group">
+    <label>Ordenar:</label>
+    <button class="sort-btn active" id="sort-default" onclick="setSort('default')"><i class="ti ti-layout-list"></i> Padrão</button>
+    <button class="sort-btn" id="sort-alpha" onclick="setSort('alpha')"><i class="ti ti-sort-a-z"></i> A–Z</button>
+    <button class="sort-btn" id="sort-atend" onclick="setSort('atend')"><i class="ti ti-user"></i> Atendimento</button>
+    <button class="sort-btn" id="sort-criativos" onclick="setSort('criativos')"><i class="ti ti-stack"></i> Criativos</button>
+  </div>
+  <div class="sep"></div>
+  <button class="btn" id="undo-btn" onclick="undo()" disabled><i class="ti ti-arrow-back-up"></i> Desfazer</button>
+  <button class="btn btn-primary" onclick="exportData()"><i class="ti ti-download"></i> Exportar CSV</button>
+</div>
+
+<div class="board" id="board"></div>
+
+<div class="footer">
+  <span class="legend-item"><span class="legend-dot" style="background:#639922;"></span>Inbound</span>
+  <span class="legend-item"><span class="legend-dot" style="background:#378ADD;"></span>Performance</span>
+  <span class="legend-item"><span class="legend-dot" style="background:#BA7517;"></span>SEO</span>
+  <span class="legend-item"><span class="legend-dot" style="background:#993556;"></span>Rede Social</span>
+  <span class="hint"><i class="ti ti-pencil"></i> Clique no nome para editar &nbsp;·&nbsp; Arraste para mover &nbsp;·&nbsp; +/- para ajustar criativos</span>
+</div>
+
+<script>
+const rawData = [
+  {cliente:"ALDEN 348",escopo:"PERFORMANCE",atend:"Manu",designer:"Paulo",video:"Cláudio",email:"-"},
+  {cliente:"APSYSTEMS",escopo:"INBOUND",atend:"João Teles",designer:"Gustavo",video:"Cláudio",email:"Gustavo"},
+  {cliente:"ATELIÊ MATERNO",escopo:"INBOUND",atend:"Laura",designer:"Sem designer",video:"-",email:"-"},
+  {cliente:"BEEON",escopo:"INBOUND",atend:"Lucas",designer:"Imane",video:"Cláudio",email:"Cláudio"},
+  {cliente:"BUFFET LA FÊTE",escopo:"PERFORMANCE",atend:"Manu",designer:"Gustavo",video:"Cláudio",email:"-"},
+  {cliente:"CASA DE CARNES J.A",escopo:"PERFORMANCE",atend:"Manu",designer:"Paulo",video:"Cláudio",email:"-"},
+  {cliente:"CLÍNICAS UNIÃO - PASSOS",escopo:"PERFORMANCE",atend:"Laura",designer:"Paulo",video:"Cláudio",email:"-"},
+  {cliente:"CREDSELLER",escopo:"INBOUND",atend:"João Teles",designer:"Sem designer",video:"-",email:"-"},
+  {cliente:"EDUCAÇÃO AUTISTA",escopo:"PERFORMANCE",atend:"Manu",designer:"Sem designer",video:"-",email:"-"},
+  {cliente:"EXPRESSO NEPOMUCENO",escopo:"SEO",atend:"João Teles",designer:"Sem designer",video:"-",email:"-"},
+  {cliente:"GO TOGETHER MICE",escopo:"INBOUND",atend:"Giovanna",designer:"Gustavo",video:"Cláudio",email:"Cláudio"},
+  {cliente:"GRUPO RODA BRANCA",escopo:"PERFORMANCE",atend:"Manu",designer:"Sem designer",video:"-",email:"-"},
+  {cliente:"HERING",escopo:"PERFORMANCE",atend:"Manu",designer:"Gustavo",video:"-",email:"-"},
+  {cliente:"HIC",escopo:"REDE SOCIAL",atend:"Manu",designer:"Paulo",video:"-",email:"-"},
+  {cliente:"JOAQUIM OURIVES",escopo:"PERFORMANCE",atend:"Manu",designer:"Paulo",video:"Cláudio",email:"-"},
+  {cliente:"JORGE PAIVA",escopo:"PERFORMANCE",atend:"Manu",designer:"Paulo",video:"Cláudio",email:"-"},
+  {cliente:"MARIAH SPA",escopo:"INBOUND",atend:"Giovanna",designer:"Sem designer",video:"-",email:"-"},
+  {cliente:"MARKA",escopo:"PERFORMANCE",atend:"Giovanna",designer:"Sem designer",video:"-",email:"-"},
+  {cliente:"NORD",escopo:"PERFORMANCE",atend:"João Teles",designer:"Gustavo",video:"Cláudio",email:"-"},
+  {cliente:"NOVA ORAL CRAVINHOS",escopo:"PERFORMANCE",atend:"Laura",designer:"Paulo",video:"-",email:"-"},
+  {cliente:"NOVA ORAL RP",escopo:"PERFORMANCE",atend:"Laura",designer:"Paulo",video:"-",email:"-"},
+  {cliente:"NOVA ORAL PIUMHI",escopo:"PERFORMANCE",atend:"Laura",designer:"Paulo",video:"-",email:"-"},
+  {cliente:"OLIVINA AZUL",escopo:"PERFORMANCE",atend:"João Teles",designer:"Gustavo",video:"-",email:"-"},
+  {cliente:"OMX",escopo:"REDE SOCIAL",atend:"Manu",designer:"Gustavo",video:"-",email:"-"},
+  {cliente:"OPTEIN",escopo:"PERFORMANCE",atend:"João Teles",designer:"Gustavo",video:"-",email:"-"},
+  {cliente:"ORIGYM",escopo:"INBOUND",atend:"Giovanna",designer:"Gustavo",video:"-",email:"-"},
+  {cliente:"ÓTICAS FLUMINENSE",escopo:"PERFORMANCE",atend:"Laura",designer:"Gustavo",video:"-",email:"-"},
+  {cliente:"PÃO NOSSO",escopo:"PERFORMANCE",atend:"Manu",designer:"Paulo",video:"Cláudio",email:"-"},
+  {cliente:"PEDIAKINDER",escopo:"SEO",atend:"Laura",designer:"Paulo",video:"-",email:"-"},
+  {cliente:"PIZZARETTO",escopo:"PERFORMANCE",atend:"Manu",designer:"Paulo",video:"Cláudio",email:"-"},
+  {cliente:"PURO FUÇO",escopo:"PERFORMANCE",atend:"Manu",designer:"Sem designer",video:"-",email:"-"},
+  {cliente:"QUALIVIDROS",escopo:"INBOUND",atend:"João Teles",designer:"Gustavo",video:"Cláudio",email:"Cláudio"},
+  {cliente:"REI DAS ÁGUAS",escopo:"REDE SOCIAL",atend:"Manu",designer:"Paulo",video:"-",email:"-"},
+  {cliente:"RI HAPPY",escopo:"PERFORMANCE",atend:"Manu",designer:"Paulo",video:"Cláudio",email:"-"},
+  {cliente:"SANMARIANA",escopo:"PERFORMANCE",atend:"Laura",designer:"Paulo",video:"Cláudio",email:"-"},
+  {cliente:"SINPAIN",escopo:"PERFORMANCE",atend:"Laura",designer:"Sem designer",video:"-",email:"-"},
+  {cliente:"SISPONTO",escopo:"SEO",atend:"Giovanna",designer:"Gustavo",video:"-",email:"-"},
+  {cliente:"STEFANELLI",escopo:"PERFORMANCE",atend:"Manu",designer:"Sem designer",video:"-",email:"-"},
+  {cliente:"SUPRIR",escopo:"PERFORMANCE",atend:"João Teles",designer:"Imane",video:"-",email:"-"},
+  {cliente:"TUDINHO PARA SUA CASA",escopo:"INBOUND",atend:"Laura",designer:"Gustavo",video:"-",email:"Cláudio"},
+  {cliente:"VBC",escopo:"PERFORMANCE",atend:"Manu",designer:"Paulo",video:"Cláudio",email:"-"},
+  {cliente:"VINO",escopo:"REDE SOCIAL",atend:"Manu",designer:"Paulo",video:"-",email:"-"},
+  {cliente:"WJMV CONSTRUTORA",escopo:"PERFORMANCE",atend:"Manu",designer:"Paulo",video:"Cláudio",email:"-"},
+];
+
+const designerColors = {Paulo:"#378ADD",Gustavo:"#639922",Imane:"#D4537E","Sem designer":"#888780"};
+let designers = ["Paulo","Gustavo","Imane","Sem designer"];
+let state = {};
+let history = [];
+let dragCard = null, dragFrom = null;
+let currentSort = "default";
+
+// ===== Integração com Google Sheets (salvamento automático) =====
+const WEBAPP_URL = "https://script.google.com/macros/s/AKfycbzzWtG4jkVpLvPwOAHaj-h9KK9k_8N6YWGUXfFtUDSXRiCj7ILDPvuSy9VJXhglTrzEQQ/exec";
+let lastSyncedAt = 0;
+let saveTimer = null;
+let savePending = false;
+let isApplyingRemote = false;
+
+function setSyncStatus(mode) {
+  const el = document.getElementById("sync-status");
+  if (!el) return;
+  el.classList.remove("saving", "error");
+  if (mode === "saving") {
+    el.classList.add("saving");
+    el.innerHTML = '<i class="ti ti-cloud-upload"></i> Salvando...';
+  } else if (mode === "error") {
+    el.classList.add("error");
+    el.innerHTML = '<i class="ti ti-cloud-off"></i> Erro ao salvar — tentando de novo';
+  } else if (mode === "loading") {
+    el.innerHTML = '<i class="ti ti-cloud"></i> Carregando...';
+  } else {
+    el.innerHTML = '<i class="ti ti-cloud-check"></i> Sincronizado';
+  }
+}
+
+function buildPayload() {
+  return { designers: designers, colors: designerColors, state: state };
+}
+
+function isUserEditing() {
+  const el = document.activeElement;
+  if (!el) return false;
+  return el.tagName === "INPUT" || el.tagName === "TEXTAREA";
+}
+
+function applyRemoteData(data) {
+  isApplyingRemote = true;
+  if (data.designers) designers = data.designers;
+  if (data.colors) Object.assign(designerColors, data.colors);
+  if (data.state) state = data.state;
+  designers.forEach(d => { if (!state[d]) state[d] = []; });
+  isApplyingRemote = false;
+}
+
+async function loadFromSheet() {
+  setSyncStatus("loading");
+  try {
+    const res = await fetch(WEBAPP_URL, { method: "GET" });
+    const json = await res.json();
+    if (json.ok && !json.empty && json.data) {
+      applyRemoteData(json.data);
+      lastSyncedAt = json.updatedAt || 0;
+      setSyncStatus("idle");
+    } else {
+      // Planilha ainda vazia: usa os dados padrão e grava na planilha
+      initState();
+      await doSave();
+    }
+  } catch (err) {
+    console.error("Falha ao carregar do Google Sheets:", err);
+    initState();
+    setSyncStatus("error");
+  }
+}
+
+function scheduleSave() {
+  if (isApplyingRemote) return;
+  setSyncStatus("saving");
+  savePending = true;
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(doSave, 900);
+}
+
+async function doSave() {
+  savePending = false;
+  const payload = buildPayload();
+  try {
+    const res = await fetch(WEBAPP_URL, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify({ data: payload })
+    });
+    const json = await res.json();
+    if (json.ok) {
+      lastSyncedAt = json.updatedAt || Date.now();
+      setSyncStatus("idle");
+    } else {
+      throw new Error(json.error || "erro desconhecido");
+    }
+  } catch (err) {
+    console.error("Falha ao salvar no Google Sheets:", err);
+    setSyncStatus("error");
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(doSave, 4000);
+  }
+}
+
+async function pollForUpdates() {
+  if (savePending || isUserEditing()) return;
+  try {
+    const res = await fetch(WEBAPP_URL, { method: "GET" });
+    const json = await res.json();
+    if (json.ok && !json.empty && json.updatedAt && json.updatedAt > lastSyncedAt) {
+      applyRemoteData(json.data);
+      lastSyncedAt = json.updatedAt;
+      renderBoard();
+      setSyncStatus("idle");
+    }
+  } catch (err) {
+    console.error("Falha ao verificar atualizações:", err);
+  }
+}
+// ===== Fim da integração com Google Sheets =====
+
+function saveHistory() {
+  history.push({state: JSON.parse(JSON.stringify(state)), designers: [...designers]});
+  document.getElementById("undo-btn").disabled = false;
+}
+
+function initState() {
+  rawData.forEach(d => {
+    const key = (d.designer && d.designer !== "-") ? d.designer : "Sem designer";
+    if (!state[key]) state[key] = [];
+    state[key].push({...d, criativos: 0});
+  });
+  designers.forEach(d => { if (!state[d]) state[d] = []; });
+}
+
+function scopeClass(e) {
+  return {INBOUND:"scope-inbound",PERFORMANCE:"scope-performance",SEO:"scope-seo","REDE SOCIAL":"scope-rede"}[e] || "scope-performance";
+}
+
+function getColor(d) { return designerColors[d] || "#888780"; }
+
+function getSortedClients(clients) {
+  const arr = [...clients];
+  if (currentSort === "alpha") arr.sort((a,b) => a.cliente.localeCompare(b.cliente, "pt"));
+  else if (currentSort === "atend") arr.sort((a,b) => a.atend.localeCompare(b.atend, "pt") || a.cliente.localeCompare(b.cliente, "pt"));
+  else if (currentSort === "criativos") arr.sort((a,b) => (b.criativos||0) - (a.criativos||0));
+  return arr;
+}
+
+function setSort(mode) {
+  currentSort = mode;
+  document.querySelectorAll(".sort-btn").forEach(b => b.classList.remove("active"));
+  document.getElementById("sort-" + mode).classList.add("active");
+  renderBoard();
+}
+
+function totalCriativos(designer) {
+  return (state[designer] || []).reduce((s, c) => s + (c.criativos || 0), 0);
+}
+
+function renderBoard() {
+  const board = document.getElementById("board");
+  board.innerHTML = "";
+  let totalClientes = 0, totalCriat = 0;
+
+  designers.forEach(designer => {
+    const clients = getSortedClients(state[designer] || []);
+    totalClientes += clients.length;
+    const tc = totalCriativos(designer);
+    totalCriat += tc;
+
+    const col = document.createElement("div");
+    col.className = "col";
+
+    // Header
+    const colHeader = document.createElement("div");
+    colHeader.className = "col-header";
+    colHeader.style.borderLeft = "4px solid " + getColor(designer);
+
+    const nameInput = document.createElement("input");
+    nameInput.type = "text";
+    nameInput.className = "col-name-input";
+    nameInput.value = designer;
+    nameInput.title = "Clique para editar o nome do designer";
+    nameInput.addEventListener("focus", () => nameInput.select());
+    nameInput.addEventListener("change", () => {
+      const newName = nameInput.value.trim();
+      if (!newName || newName === designer) { nameInput.value = designer; return; }
+      if (designers.includes(newName)) { alert("Já existe um designer com esse nome."); nameInput.value = designer; return; }
+      saveHistory();
+      const idx = designers.indexOf(designer);
+      designers[idx] = newName;
+      state[newName] = state[designer];
+      delete state[designer];
+      if (designerColors[designer]) designerColors[newName] = designerColors[designer];
+      renderBoard();
+      scheduleSave();
+    });
+    nameInput.addEventListener("keydown", e => {
+      if (e.key === "Enter") nameInput.blur();
+      if (e.key === "Escape") { nameInput.value = designer; nameInput.blur(); }
+    });
+
+    const metaDiv = document.createElement("div");
+    metaDiv.className = "col-meta";
+
+    const countSpan = document.createElement("span");
+    countSpan.className = "col-count";
+    countSpan.id = "count-" + designer;
+    countSpan.textContent = clients.length + " cl.";
+
+    const criativosTotal = document.createElement("span");
+    criativosTotal.className = "col-criativos-total";
+    criativosTotal.id = "criat-total-" + designer;
+    criativosTotal.innerHTML = '<i class="ti ti-stack" style="font-size:11px;"></i>' + tc;
+    criativosTotal.title = "Total de criativos do designer";
+
+    metaDiv.appendChild(countSpan);
+    metaDiv.appendChild(criativosTotal);
+    colHeader.appendChild(nameInput);
+    colHeader.appendChild(metaDiv);
+    col.appendChild(colHeader);
+
+    // Drop zone
+    const zone = document.createElement("div");
+    zone.className = "drop-zone";
+    zone.dataset.designer = designer;
+    zone.addEventListener("dragover", onDragOver);
+    zone.addEventListener("dragleave", onDragLeave);
+    zone.addEventListener("drop", onDrop);
+
+    clients.forEach(c => {
+      const card = document.createElement("div");
+      card.className = "client-card";
+      card.draggable = true;
+      card.dataset.cliente = c.cliente;
+      card.dataset.designer = designer;
+      card.dataset.escopo = c.escopo;
+      card.dataset.atend = c.atend;
+
+      // Name row
+      const cardTop = document.createElement("div");
+      cardTop.className = "card-top";
+      const nameTA = document.createElement("textarea");
+      nameTA.className = "client-name-input";
+      nameTA.value = c.cliente;
+      nameTA.rows = 1;
+      nameTA.title = "Clique para editar";
+      nameTA.style.overflow = "hidden";
+      nameTA.addEventListener("focus", () => {
+        card.draggable = false;
+        nameTA.select();
+        nameTA.style.height = "auto";
+        nameTA.style.height = nameTA.scrollHeight + "px";
+      });
+      nameTA.addEventListener("input", () => {
+        nameTA.style.height = "auto";
+        nameTA.style.height = nameTA.scrollHeight + "px";
+      });
+      nameTA.addEventListener("change", () => {
+        const newName = nameTA.value.trim();
+        if (!newName) { nameTA.value = c.cliente; return; }
+        saveHistory();
+        const item = (state[designer] || []).find(x => x.cliente === c.cliente);
+        if (item) item.cliente = newName;
+        card.dataset.cliente = newName;
+        c.cliente = newName;
+        scheduleSave();
+      });
+      nameTA.addEventListener("blur", () => { card.draggable = true; nameTA.style.height = "auto"; });
+      nameTA.addEventListener("keydown", e => {
+        if (e.key === "Enter") { e.preventDefault(); nameTA.blur(); }
+        if (e.key === "Escape") { nameTA.value = c.cliente; nameTA.blur(); }
+        e.stopPropagation();
+      });
+
+      const editIcon = document.createElement("i");
+      editIcon.className = "ti ti-pencil edit-icon";
+      editIcon.title = "Editar nome";
+      editIcon.addEventListener("click", () => nameTA.focus());
+
+      cardTop.appendChild(nameTA);
+      cardTop.appendChild(editIcon);
+
+      // Badges
+      const meta = document.createElement("div");
+      meta.className = "client-meta";
+      meta.innerHTML =
+        '<span class="badge badge-atend"><i class="ti ti-headset"></i>' + c.atend + '</span>' +
+        '<span class="badge ' + scopeClass(c.escopo) + '">' + c.escopo + '</span>' +
+        (c.video && c.video !== "-" ? '<span class="badge badge-video"><i class="ti ti-video"></i>' + c.video + '</span>' : "") +
+        (c.email && c.email !== "-" ? '<span class="badge badge-email"><i class="ti ti-mail"></i>' + c.email + '</span>' : "");
+
+      // Criativos row
+      const criRow = document.createElement("div");
+      criRow.className = "criativos-row";
+      criRow.innerHTML = '<span class="criativos-label"><i class="ti ti-stack" style="font-size:10px;vertical-align:-1px;"></i> Criativos</span>';
+
+      const ctrl = document.createElement("div");
+      ctrl.className = "criativos-ctrl";
+
+      const btnMinus = document.createElement("button");
+      btnMinus.className = "criativos-btn";
+      btnMinus.textContent = "−";
+      btnMinus.title = "Diminuir";
+
+      const valSpan = document.createElement("span");
+      valSpan.className = "criativos-val";
+      valSpan.textContent = c.criativos || 0;
+      valSpan.title = "Clique para editar diretamente";
+      valSpan.style.cursor = "pointer";
+
+      const btnPlus = document.createElement("button");
+      btnPlus.className = "criativos-btn";
+      btnPlus.textContent = "+";
+      btnPlus.title = "Aumentar";
+
+      // Click on value → inline input
+      valSpan.addEventListener("click", () => {
+        const inp = document.createElement("input");
+        inp.type = "number";
+        inp.className = "criativos-input";
+        inp.value = c.criativos || 0;
+        inp.min = 0;
+        valSpan.replaceWith(inp);
+        inp.focus();
+        inp.select();
+        const commit = () => {
+          const v = Math.max(0, parseInt(inp.value) || 0);
+          saveHistory();
+          c.criativos = v;
+          updateTotals(designer);
+          inp.replaceWith(valSpan);
+          valSpan.textContent = v;
+          if (currentSort === "criativos") renderBoard();
+          scheduleSave();
+        };
+        inp.addEventListener("blur", commit);
+        inp.addEventListener("keydown", e => { if (e.key === "Enter") inp.blur(); e.stopPropagation(); });
+      });
+
+      btnMinus.addEventListener("click", e => {
+        e.stopPropagation();
+        if ((c.criativos || 0) <= 0) return;
+        saveHistory();
+        c.criativos = (c.criativos || 0) - 1;
+        valSpan.textContent = c.criativos;
+        updateTotals(designer);
+        if (currentSort === "criativos") renderBoard();
+        scheduleSave();
+      });
+      btnPlus.addEventListener("click", e => {
+        e.stopPropagation();
+        saveHistory();
+        c.criativos = (c.criativos || 0) + 1;
+        valSpan.textContent = c.criativos;
+        updateTotals(designer);
+        if (currentSort === "criativos") renderBoard();
+        scheduleSave();
+      });
+
+      ctrl.appendChild(btnMinus);
+      ctrl.appendChild(valSpan);
+      ctrl.appendChild(btnPlus);
+      criRow.appendChild(ctrl);
+
+      card.appendChild(cardTop);
+      card.appendChild(meta);
+      card.appendChild(criRow);
+
+      card.addEventListener("dragstart", onDragStart);
+      card.addEventListener("dragend", onDragEnd);
+      zone.appendChild(card);
+    });
+
+    col.appendChild(zone);
+    board.appendChild(col);
+  });
+
+  document.getElementById("stats-bar").textContent =
+    totalClientes + " clientes · " + designers.length + " designers · " + totalCriat + " criativos no total";
+  filterCards();
+}
+
+function updateTotals(designer) {
+  const tc = totalCriativos(designer);
+  const el = document.getElementById("criat-total-" + designer);
+  if (el) el.innerHTML = '<i class="ti ti-stack" style="font-size:11px;"></i>' + tc;
+  // update global stats
+  let totalCriat = 0;
+  designers.forEach(d => totalCriat += totalCriativos(d));
+  const clients = designers.reduce((s, d) => s + (state[d] || []).length, 0);
+  document.getElementById("stats-bar").textContent =
+    clients + " clientes · " + designers.length + " designers · " + totalCriat + " criativos no total";
+}
+
+function onDragStart(e) {
+  dragCard = e.currentTarget;
+  dragFrom = dragCard.dataset.designer;
+  setTimeout(() => dragCard && dragCard.classList.add("dragging"), 0);
+  e.dataTransfer.effectAllowed = "move";
+}
+function onDragEnd() {
+  if (dragCard) dragCard.classList.remove("dragging");
+  document.querySelectorAll(".drop-zone").forEach(z => z.classList.remove("drag-over"));
+  dragCard = null; dragFrom = null;
+}
+function onDragOver(e) { e.preventDefault(); e.currentTarget.classList.add("drag-over"); }
+function onDragLeave(e) { e.currentTarget.classList.remove("drag-over"); }
+function onDrop(e) {
+  e.preventDefault();
+  const zone = e.currentTarget;
+  zone.classList.remove("drag-over");
+  const toDesigner = zone.dataset.designer;
+  if (!dragCard || dragFrom === toDesigner) return;
+  const clienteName = dragCard.dataset.cliente;
+  saveHistory();
+  const fromArr = state[dragFrom];
+  const idx = fromArr.findIndex(c => c.cliente === clienteName);
+  if (idx > -1) {
+    const [item] = fromArr.splice(idx, 1);
+    item.designer = toDesigner;
+    state[toDesigner].push(item);
+  }
+  renderBoard();
+  scheduleSave();
+}
+
+function filterCards() {
+  const q = document.getElementById("search").value.toLowerCase();
+  const escopo = document.getElementById("filter-escopo").value;
+  document.querySelectorAll(".client-card").forEach(card => {
+    const matchQ = !q || card.dataset.cliente.toLowerCase().includes(q);
+    const matchE = !escopo || card.dataset.escopo === escopo;
+    card.classList.toggle("hidden", !(matchQ && matchE));
+  });
+  designers.forEach(d => {
+    const zone = document.querySelector('.drop-zone[data-designer="' + d + '"]');
+    if (!zone) return;
+    const visible = zone.querySelectorAll(".client-card:not(.hidden)").length;
+    const el = document.getElementById("count-" + d);
+    if (el) el.textContent = visible + " cl." + (q || escopo ? "*" : "");
+  });
+}
+
+function undo() {
+  if (!history.length) return;
+  const prev = history.pop();
+  state = prev.state;
+  designers = prev.designers;
+  if (!history.length) document.getElementById("undo-btn").disabled = true;
+  renderBoard();
+  scheduleSave();
+}
+
+function exportData() {
+  let lines = ["Designer,Cliente,Escopo,Atendimento,Vídeo,E-mail Design,Criativos"];
+  designers.forEach(d => {
+    (state[d] || []).forEach(c => {
+      lines.push('"'+d+'","'+c.cliente+'","'+c.escopo+'","'+c.atend+'","'+c.video+'","'+c.email+'",'+(c.criativos||0));
+    });
+  });
+  lines.push("");
+  lines.push("Totais por designer");
+  designers.forEach(d => {
+    lines.push('"'+d+'",,,,,,'+totalCriativos(d));
+  });
+  const blob = new Blob([lines.join("\n")], {type:"text/csv"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "clientes-por-designer.csv";
+  a.click();
+}
+
+(async function start() {
+  await loadFromSheet();
+  renderBoard();
+  setInterval(pollForUpdates, 6000);
+})();
+</script>
+</body>
+</html>
