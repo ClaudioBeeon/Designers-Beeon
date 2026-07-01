@@ -18,6 +18,15 @@
   .sync-status i { font-size: 12px; }
   .sync-status.saving { color: #854F0B; background: #FAEEDA; }
   .sync-status.error { color: #993556; background: #FBEAF0; }
+  .col-horas-total { font-size: 11px; color: #888; background: #f1efe8; padding: 2px 7px; border-radius: 10px; display: inline-flex; align-items: center; gap: 3px; white-space: nowrap; }
+  .tempo-row { display: flex; align-items: center; justify-content: space-between; padding: 4px 8px 6px; border-top: 1px dashed #e8e6e0; margin-top: 2px; }
+  .tempo-label { font-size: 10px; color: #aaa; display: flex; align-items: center; gap: 3px; }
+  .tempo-ctrl { display: flex; align-items: center; gap: 4px; }
+  .tempo-btn { background: none; border: 1px solid #d3d1c7; border-radius: 5px; width: 20px; height: 20px; font-size: 14px; line-height: 1; cursor: pointer; color: #8c5a1a; display: flex; align-items: center; justify-content: center; padding: 0; transition: background 0.1s; }
+  .tempo-btn:hover { background: #faeeda; }
+  .tempo-val { font-size: 12px; font-weight: 700; color: #8c5a1a; min-width: 36px; text-align: center; cursor: pointer; }
+  .tempo-unit { font-size: 10px; color: #aaa; margin-left: 1px; }
+  .tempo-input { font-size: 12px; font-weight: 700; color: #8c5a1a; width: 42px; text-align: center; border: 1px solid #D4853A; border-radius: 5px; padding: 1px 4px; outline: none; font-family: inherit; background: #fdf3e8; }
 
   .toolbar { background: #fff; padding: 0.55rem 1.5rem; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; border-bottom: 1px solid #e0e0da; }
   .toolbar input[type=text] { font-size: 13px; padding: 6px 11px; border: 1px solid #d3d1c7; border-radius: 8px; background: #fafaf8; color: #1a1a18; width: 200px; outline: none; transition: border-color 0.15s; }
@@ -133,6 +142,7 @@
   <div class="sep"></div>
   <button class="btn" id="undo-btn" onclick="undo()" disabled><i class="ti ti-arrow-back-up"></i> Desfazer</button>
   <button class="btn btn-primary" onclick="openAddClientModal()"><i class="ti ti-user-plus"></i> Novo Cliente</button>
+  <button class="btn btn-primary" onclick="openAddDesignerModal()"><i class="ti ti-layout-columns"></i> Novo Designer</button>
   <button class="btn btn-primary" onclick="exportData()"><i class="ti ti-download"></i> Exportar CSV</button>
 </div>
 
@@ -182,6 +192,24 @@
     <div class="modal-actions">
       <button class="btn" onclick="closeAddClientModal()">Cancelar</button>
       <button class="btn btn-primary" onclick="submitAddClient()"><i class="ti ti-check"></i> Adicionar</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay hidden" id="add-designer-modal">
+  <div class="modal-box">
+    <h2><i class="ti ti-layout-columns"></i> Novo Designer</h2>
+    <div class="modal-field">
+      <label>Nome do designer</label>
+      <input type="text" id="new-designer-nome" placeholder="Ex: Fernanda">
+    </div>
+    <div class="modal-field">
+      <label>Cor da coluna</label>
+      <input type="color" id="new-designer-cor" value="#378ADD" style="height:36px;padding:2px 4px;cursor:pointer;">
+    </div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeAddDesignerModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="submitAddDesigner()"><i class="ti ti-check"></i> Adicionar</button>
     </div>
   </div>
 </div>
@@ -392,6 +420,23 @@ function totalCriativos(designer) {
   return (state[designer] || []).reduce((s, c) => s + (c.criativos || 0), 0);
 }
 
+function totalTempoMin(designer) {
+  return (state[designer] || []).reduce((s, c) => s + (c.tempo || 0), 0);
+}
+
+function formatTempo(minutos) {
+  if (!minutos) return "0min";
+  if (minutos < 60) return minutos + "min";
+  const h = Math.floor(minutos / 60);
+  const m = minutos % 60;
+  return m > 0 ? h + "h " + m + "min" : h + "h";
+}
+
+function updateTempoTotals(designer) {
+  const el = document.getElementById("horas-total-" + designer);
+  if (el) el.innerHTML = '<i class="ti ti-clock" style="font-size:11px;"></i>' + formatTempo(totalTempoMin(designer));
+}
+
 function renderBoard() {
   const board = document.getElementById("board");
   board.innerHTML = "";
@@ -449,8 +494,37 @@ function renderBoard() {
     criativosTotal.innerHTML = '<i class="ti ti-stack" style="font-size:11px;"></i>' + tc;
     criativosTotal.title = "Total de criativos do designer";
 
+    const horasTotal = document.createElement("span");
+    horasTotal.className = "col-horas-total";
+    horasTotal.id = "horas-total-" + designer;
+    horasTotal.innerHTML = '<i class="ti ti-clock" style="font-size:11px;"></i>' + formatTempo(totalTempoMin(designer));
+    horasTotal.title = "Total de horas no mês";
+
     metaDiv.appendChild(countSpan);
     metaDiv.appendChild(criativosTotal);
+    metaDiv.appendChild(horasTotal);
+
+    if (designer !== "Sem designer") {
+      const removeBtn = document.createElement("button");
+      removeBtn.className = "btn";
+      removeBtn.title = "Remover designer (clientes vão para 'Sem designer')";
+      removeBtn.innerHTML = '<i class="ti ti-trash" style="font-size:12px;color:#c0392b;"></i>';
+      removeBtn.style.cssText = "padding:2px 6px;min-width:0;border-color:#e8e6e0;";
+      removeBtn.addEventListener("click", () => {
+        if (!confirm(`Remover o designer "${designer}"? Os clientes dele vão para "Sem designer".`)) return;
+        saveHistory();
+        const semD = "Sem designer";
+        if (!state[semD]) state[semD] = [];
+        (state[designer] || []).forEach(c => { c.designer = semD; state[semD].push(c); });
+        delete state[designer];
+        delete designerColors[designer];
+        designers.splice(designers.indexOf(designer), 1);
+        renderBoard();
+        scheduleSave();
+      });
+      metaDiv.appendChild(removeBtn);
+    }
+
     colHeader.appendChild(nameInput);
     colHeader.appendChild(metaDiv);
     col.appendChild(colHeader);
@@ -644,9 +718,84 @@ function renderBoard() {
       ctrl.appendChild(btnPlus);
       criRow.appendChild(ctrl);
 
+      // Tempo row
+      const tempoRow = document.createElement("div");
+      tempoRow.className = "tempo-row";
+      tempoRow.innerHTML = '<span class="tempo-label"><i class="ti ti-clock" style="font-size:10px;vertical-align:-1px;"></i> Tempo médio</span>';
+
+      const tempoCtrl = document.createElement("div");
+      tempoCtrl.className = "tempo-ctrl";
+
+      const tMinus = document.createElement("button");
+      tMinus.className = "tempo-btn";
+      tMinus.textContent = "−";
+      tMinus.title = "−15 min";
+
+      const tVal = document.createElement("span");
+      tVal.className = "tempo-val";
+      tVal.title = "Clique para editar (em minutos)";
+      tVal.textContent = formatTempo(c.tempo || 0);
+
+      const tUnit = document.createElement("span");
+      tUnit.className = "tempo-unit";
+      tUnit.textContent = "";
+
+      const tPlus = document.createElement("button");
+      tPlus.className = "tempo-btn";
+      tPlus.textContent = "+";
+      tPlus.title = "+15 min";
+
+      tVal.addEventListener("click", () => {
+        const inp = document.createElement("input");
+        inp.type = "number";
+        inp.className = "tempo-input";
+        inp.value = c.tempo || 0;
+        inp.min = 0;
+        inp.placeholder = "min";
+        inp.title = "Digite o valor em minutos";
+        tVal.replaceWith(inp);
+        inp.focus(); inp.select();
+        const commit = () => {
+          const v = Math.max(0, parseInt(inp.value) || 0);
+          saveHistory();
+          c.tempo = v;
+          tVal.textContent = formatTempo(v);
+          inp.replaceWith(tVal);
+          updateTempoTotals(designer);
+          scheduleSave();
+        };
+        inp.addEventListener("blur", commit);
+        inp.addEventListener("keydown", e => { if (e.key === "Enter") inp.blur(); e.stopPropagation(); });
+      });
+
+      tMinus.addEventListener("click", e => {
+        e.stopPropagation();
+        if ((c.tempo || 0) < 15) return;
+        saveHistory();
+        c.tempo = (c.tempo || 0) - 15;
+        tVal.textContent = formatTempo(c.tempo);
+        updateTempoTotals(designer);
+        scheduleSave();
+      });
+
+      tPlus.addEventListener("click", e => {
+        e.stopPropagation();
+        saveHistory();
+        c.tempo = (c.tempo || 0) + 15;
+        tVal.textContent = formatTempo(c.tempo);
+        updateTempoTotals(designer);
+        scheduleSave();
+      });
+
+      tempoCtrl.appendChild(tMinus);
+      tempoCtrl.appendChild(tVal);
+      tempoCtrl.appendChild(tPlus);
+      tempoRow.appendChild(tempoCtrl);
+
       card.appendChild(cardTop);
       card.appendChild(meta);
       card.appendChild(criRow);
+      card.appendChild(tempoRow);
 
       card.addEventListener("dragstart", onDragStart);
       card.addEventListener("dragend", onDragEnd);
@@ -666,7 +815,7 @@ function updateTotals(designer) {
   const tc = totalCriativos(designer);
   const el = document.getElementById("criat-total-" + designer);
   if (el) el.innerHTML = '<i class="ti ti-stack" style="font-size:11px;"></i>' + tc;
-  // update global stats
+  updateTempoTotals(designer);
   let totalCriat = 0;
   designers.forEach(d => totalCriat += totalCriativos(d));
   const clients = designers.reduce((s, d) => s + (state[d] || []).length, 0);
@@ -734,16 +883,16 @@ function undo() {
 }
 
 function exportData() {
-  let lines = ["Designer,Cliente,Escopo,Atendimento,Vídeo,E-mail Design,Criativos"];
+  let lines = ["Designer,Cliente,Escopo,Atendimento,Vídeo,E-mail Design,Criativos,Tempo Médio (min)"];
   designers.forEach(d => {
     (state[d] || []).forEach(c => {
-      lines.push('"'+d+'","'+c.cliente+'","'+c.escopo+'","'+c.atend+'","'+c.video+'","'+c.email+'",'+(c.criativos||0));
+      lines.push('"'+d+'","'+c.cliente+'","'+c.escopo+'","'+c.atend+'","'+c.video+'","'+c.email+'",'+(c.criativos||0)+','+(c.tempo||0));
     });
   });
   lines.push("");
   lines.push("Totais por designer");
   designers.forEach(d => {
-    lines.push('"'+d+'",,,,,,'+totalCriativos(d));
+    lines.push('"'+d+'",,,,,,'+totalCriativos(d)+','+totalTempoMin(d));
   });
   const blob = new Blob([lines.join("\n")], {type:"text/csv"});
   const a = document.createElement("a");
@@ -806,6 +955,37 @@ document.addEventListener("keydown", e => {
   }
 });
 // ===== Fim do modal =====
+
+// ===== Modal: Novo Designer =====
+function openAddDesignerModal() {
+  document.getElementById("new-designer-nome").value = "";
+  document.getElementById("new-designer-cor").value = "#378ADD";
+  document.getElementById("add-designer-modal").classList.remove("hidden");
+  document.getElementById("new-designer-nome").focus();
+}
+
+function closeAddDesignerModal() {
+  document.getElementById("add-designer-modal").classList.add("hidden");
+}
+
+function submitAddDesigner() {
+  const nome = document.getElementById("new-designer-nome").value.trim();
+  if (!nome) { alert("Digite o nome do designer."); return; }
+  if (designers.includes(nome)) { alert("Já existe um designer com esse nome."); return; }
+  const cor = document.getElementById("new-designer-cor").value;
+  saveHistory();
+  designers.push(nome);
+  state[nome] = [];
+  designerColors[nome] = cor;
+  closeAddDesignerModal();
+  renderBoard();
+  scheduleSave();
+}
+
+document.getElementById("add-designer-modal").addEventListener("click", e => {
+  if (e.target.id === "add-designer-modal") closeAddDesignerModal();
+});
+// ===== Fim modal Novo Designer =====
 
 (async function start() {
   await loadFromSheet();
