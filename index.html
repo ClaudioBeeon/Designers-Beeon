@@ -618,7 +618,7 @@ function totalCriativos(designer) {
 }
 
 function totalTempoMin(designer) {
-  return (state[designer] || []).reduce((s, c) => s + (c.tempo || 0), 0);
+  return (state[designer] || []).reduce((s, c) => s + ((c.criativos || 0) * (c.tempo || 0)), 0);
 }
 
 function formatTempo(minutos) {
