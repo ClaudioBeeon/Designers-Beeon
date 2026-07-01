@@ -19,11 +19,11 @@
   .sync-status.saving { color: #854F0B; background: #FAEEDA; }
   .sync-status.error { color: #993556; background: #FBEAF0; }
   .col-horas-total { font-size: 11px; color: #888; background: #f1efe8; padding: 2px 7px; border-radius: 10px; display: inline-flex; align-items: center; gap: 3px; white-space: nowrap; }
-  .tempo-row { display: flex; align-items: center; justify-content: space-between; padding: 4px 8px 6px; border-top: 1px dashed #e8e6e0; margin-top: 2px; }
-  .tempo-label { font-size: 10px; color: #aaa; display: flex; align-items: center; gap: 3px; }
-  .tempo-ctrl { display: flex; align-items: center; gap: 4px; }
-  .tempo-btn { background: none; border: 1px solid #d3d1c7; border-radius: 5px; width: 20px; height: 20px; font-size: 14px; line-height: 1; cursor: pointer; color: #8c5a1a; display: flex; align-items: center; justify-content: center; padding: 0; transition: background 0.1s; }
-  .tempo-btn:hover { background: #faeeda; }
+  .tempo-row { display: flex; align-items: center; gap: 6px; margin-top: 0; padding-top: 4px; border-top: 1px dashed #e8e6e0; }
+  .tempo-label { font-size: 10px; color: #aaa; display: flex; align-items: center; gap: 3px; white-space: nowrap; }
+  .tempo-ctrl { display: flex; align-items: center; gap: 4px; margin-left: auto; }
+  .tempo-btn { background: #fafaf8; border: 1px solid #d3d1c7; border-radius: 5px; width: 20px; height: 20px; font-size: 13px; line-height: 1; cursor: pointer; color: #8c5a1a; display: flex; align-items: center; justify-content: center; padding: 0; transition: background 0.1s; flex-shrink: 0; }
+  .tempo-btn:hover { background: #faeeda; border-color: #D4853A; }
   .tempo-val { font-size: 12px; font-weight: 700; color: #8c5a1a; min-width: 36px; text-align: center; cursor: pointer; }
   .tempo-unit { font-size: 10px; color: #aaa; margin-left: 1px; }
   .tempo-input { font-size: 12px; font-weight: 700; color: #8c5a1a; width: 42px; text-align: center; border: 1px solid #D4853A; border-radius: 5px; padding: 1px 4px; outline: none; font-family: inherit; background: #fdf3e8; }
@@ -46,11 +46,17 @@
 
   .board { display: flex; gap: 14px; padding: 1.25rem 1.5rem 5rem; overflow-x: auto; min-height: calc(100vh - 130px); align-items: flex-start; }
 
-  .col { flex: 0 0 230px; display: flex; flex-direction: column; gap: 6px; }
-  .col-header { background: #fff; border-radius: 10px; padding: 10px 12px; border: 1px solid #e0e0da; display: flex; align-items: center; justify-content: space-between; gap: 6px; }
-  .col-name-input { font-size: 13px; font-weight: 600; color: #1a1a18; background: transparent; border: 1px solid transparent; outline: none; width: 100%; padding: 2px 4px; border-radius: 4px; font-family: inherit; transition: background 0.12s, border 0.12s; }
+  .col { flex: 0 0 230px; display: flex; flex-direction: column; gap: 6px; transition: opacity 0.15s; }
+  .col.col-dragging { opacity: 0.35; }
+  .col.col-drag-over { outline: 2px dashed #378ADD; outline-offset: 4px; border-radius: 12px; }
+  .col-drag-handle { cursor: grab; color: #ccc; font-size: 13px; padding: 2px 3px; flex-shrink: 0; transition: color 0.1s; }
+  .col-drag-handle:hover { color: #888; }
+  .col-drag-handle:active { cursor: grabbing; }
+  .col-header { background: #fff; border-radius: 10px; padding: 8px 12px; border: 1px solid #e0e0da; display: flex; flex-direction: column; gap: 5px; }
+  .col-header-top { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+  .col-name-input { font-size: 13px; font-weight: 600; color: #1a1a18; background: transparent; border: 1px solid transparent; outline: none; width: 100%; padding: 2px 4px; border-radius: 4px; font-family: inherit; transition: background 0.12s, border 0.12s; min-width: 0; }
   .col-name-input:focus { background: #f5f5f3; border-color: #d3d1c7; }
-  .col-meta { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+  .col-meta { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
   .col-count { font-size: 11px; color: #888; white-space: nowrap; background: #f1efe8; padding: 2px 7px; border-radius: 10px; }
   .col-criativos-total { font-size: 11px; font-weight: 600; color: #185FA5; background: #E6F1FB; padding: 2px 7px; border-radius: 10px; white-space: nowrap; display: flex; align-items: center; gap: 3px; }
 
@@ -86,7 +92,7 @@
   .badge-video { background: #FAEEDA; color: #854F0B; }
   .badge-email { background: #FBEAF0; color: #993556; }
 
-  .criativos-row { display: flex; align-items: center; gap: 6px; margin-top: 7px; padding-top: 6px; border-top: 1px solid #f0ede6; }
+  .criativos-row { display: flex; align-items: center; gap: 6px; margin-top: 7px; padding-top: 6px; border-top: 1px solid #f0ede6; padding-bottom: 2px; }
   .criativos-label { font-size: 10px; color: #999; white-space: nowrap; }
   .criativos-ctrl { display: flex; align-items: center; gap: 4px; margin-left: auto; }
   .criativos-btn { width: 20px; height: 20px; border: 1px solid #d3d1c7; border-radius: 5px; background: #fafaf8; color: #555; cursor: pointer; font-size: 13px; line-height: 1; display: flex; align-items: center; justify-content: center; transition: background 0.1s; padding: 0; font-family: inherit; flex-shrink: 0; }
@@ -94,6 +100,27 @@
   .criativos-val { font-size: 13px; font-weight: 700; color: #185FA5; min-width: 22px; text-align: center; }
   .criativos-input { font-size: 13px; font-weight: 700; color: #185FA5; width: 38px; text-align: center; border: 1px solid #378ADD; border-radius: 5px; padding: 1px 4px; outline: none; font-family: inherit; background: #E6F1FB; }
   .atend-input { font-size: 10px; font-weight: 500; color: #185FA5; border: 1px solid #378ADD; border-radius: 5px; padding: 2px 6px; outline: none; font-family: inherit; background: #E6F1FB; width: 100px; }
+
+  /* Tags de serviços */
+  .servicos-row { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; padding-top: 6px; border-top: 1px solid #f0ede6; align-items: center; }
+  .servico-tag { font-size: 10px; font-weight: 600; padding: 2px 7px; border-radius: 20px; display: inline-flex; align-items: center; gap: 3px; cursor: pointer; transition: opacity 0.15s, transform 0.1s; user-select: none; border: 1.5px solid transparent; }
+  .servico-tag:hover { opacity: 0.8; }
+  .servico-tag .tag-remove { font-size: 9px; margin-left: 2px; opacity: 0.6; }
+  .servico-tag:hover .tag-remove { opacity: 1; }
+  .add-servico-btn { font-size: 10px; color: #aaa; background: #f5f5f3; border: 1.5px dashed #d3d1c7; border-radius: 20px; padding: 2px 8px; cursor: pointer; display: inline-flex; align-items: center; gap: 3px; transition: border-color 0.15s, color 0.15s; }
+  .add-servico-btn:hover { border-color: #378ADD; color: #378ADD; }
+
+  /* Popup de seleção de tags */
+  .tags-popup { position: absolute; background: #fff; border: 1px solid #d3d1c7; border-radius: 10px; box-shadow: 0 6px 24px rgba(0,0,0,0.14); padding: 10px; z-index: 500; min-width: 200px; }
+  .tags-popup-title { font-size: 10px; color: #999; font-weight: 600; margin-bottom: 7px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .tags-popup-grid { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 8px; }
+  .tags-popup-option { font-size: 10px; font-weight: 600; padding: 3px 9px; border-radius: 20px; cursor: pointer; border: 1.5px solid transparent; transition: opacity 0.1s, transform 0.1s; }
+  .tags-popup-option:hover { transform: scale(1.05); }
+  .tags-popup-option.active { opacity: 0.4; cursor: default; }
+  .tags-popup-custom { display: flex; gap: 5px; margin-top: 4px; border-top: 1px solid #f0ede6; padding-top: 8px; }
+  .tags-popup-custom input { flex: 1; font-size: 11px; padding: 4px 8px; border: 1px solid #d3d1c7; border-radius: 6px; outline: none; font-family: inherit; background: #fafaf8; }
+  .tags-popup-custom input:focus { border-color: #378ADD; }
+  .tags-popup-custom button { font-size: 11px; padding: 4px 10px; background: #378ADD; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-family: inherit; }
 
   .modal-overlay { position: fixed; inset: 0; background: rgba(20,20,18,0.4); display: flex; align-items: center; justify-content: center; z-index: 1000; }
   .modal-overlay.hidden { display: none; }
@@ -271,7 +298,172 @@ let designers = ["Paulo","Gustavo","Imane","Sem designer"];
 let state = {};
 let history = [];
 let dragCard = null, dragFrom = null;
+let dragCol = null, dragColOver = null;
+
+function onColDragStart(e) {
+  dragCol = e.currentTarget;
+  dragCol.dataset.colDragging = "1";
+  setTimeout(() => dragCol && dragCol.classList.add("col-dragging"), 0);
+  e.dataTransfer.effectAllowed = "move";
+  e.dataTransfer.setData("text/plain", dragCol.dataset.designer);
+}
+
+function onColDragEnd() {
+  if (dragCol) { dragCol.classList.remove("col-dragging"); delete dragCol.dataset.colDragging; }
+  document.querySelectorAll(".col").forEach(c => c.classList.remove("col-drag-over"));
+  dragCol = null; dragColOver = null;
+}
+
+function onColDragOver(e) {
+  if (!dragCol) return;
+  e.preventDefault();
+  const target = e.currentTarget;
+  if (target === dragCol) return;
+  if (dragColOver !== target) {
+    document.querySelectorAll(".col").forEach(c => c.classList.remove("col-drag-over"));
+    target.classList.add("col-drag-over");
+    dragColOver = target;
+  }
+}
+
+function onColDrop(e) {
+  e.preventDefault();
+  if (!dragCol || !dragColOver || dragCol === dragColOver) return;
+  const fromD = dragCol.dataset.designer;
+  const toD = dragColOver.dataset.designer;
+  const fi = designers.indexOf(fromD);
+  const ti = designers.indexOf(toD);
+  if (fi === -1 || ti === -1) return;
+  saveHistory();
+  designers.splice(fi, 1);
+  designers.splice(ti, 0, fromD);
+  renderBoard();
+  scheduleSave();
+}
 let currentSort = "default";
+
+// ===== Serviços predefinidos =====
+const SERVICOS_PREDEFINIDOS = [
+  { label: "Estático",   icon: "ti-photo",        bg: "#E6F1FB", color: "#185FA5" },
+  { label: "Vídeo",      icon: "ti-video",         bg: "#FAEEDA", color: "#854F0B" },
+  { label: "Animação",   icon: "ti-player-play",   bg: "#EAF3DE", color: "#3B6D11" },
+  { label: "E-mail",     icon: "ti-mail",          bg: "#FBEAF0", color: "#993556" },
+  { label: "Story",      icon: "ti-device-mobile", bg: "#F3EEFB", color: "#6B3FA0" },
+  { label: "Reels",      icon: "ti-brand-instagram",bg: "#FEF0F0", color: "#C0392B" },
+  { label: "Banner",     icon: "ti-browser",       bg: "#E8F8F5", color: "#1A6B55" },
+  { label: "Tráfego",   icon: "ti-ad-2",          bg: "#FFF3CD", color: "#856404" },
+];
+
+function getServicoStyle(label) {
+  const pre = SERVICOS_PREDEFINIDOS.find(s => s.label.toLowerCase() === label.toLowerCase());
+  if (pre) return { bg: pre.bg, color: pre.color, icon: pre.icon };
+  // Cor gerada para tags customizadas
+  let hash = 0;
+  for (let i = 0; i < label.length; i++) hash = label.charCodeAt(i) + ((hash << 5) - hash);
+  const hue = Math.abs(hash) % 360;
+  return { bg: `hsl(${hue},55%,92%)`, color: `hsl(${hue},45%,35%)`, icon: "ti-tag" };
+}
+
+let activeTagsPopup = null;
+
+function closeTagsPopup() {
+  if (activeTagsPopup) { activeTagsPopup.remove(); activeTagsPopup = null; }
+}
+
+function buildServicosRow(c, designer) {
+  const row = document.createElement("div");
+  row.className = "servicos-row";
+
+  const renderTags = () => {
+    row.innerHTML = "";
+    (c.servicos || []).forEach(label => {
+      const st = getServicoStyle(label);
+      const tag = document.createElement("span");
+      tag.className = "servico-tag";
+      tag.style.background = st.bg;
+      tag.style.color = st.color;
+      tag.style.borderColor = st.bg;
+      tag.innerHTML = `<i class="ti ${st.icon}" style="font-size:9px;"></i>${label}<span class="tag-remove" title="Remover">×</span>`;
+      tag.querySelector(".tag-remove").addEventListener("click", e => {
+        e.stopPropagation();
+        saveHistory();
+        c.servicos = (c.servicos || []).filter(s => s !== label);
+        renderTags();
+        scheduleSave();
+      });
+      row.appendChild(tag);
+    });
+
+    const addBtn = document.createElement("button");
+    addBtn.className = "add-servico-btn";
+    addBtn.innerHTML = '<i class="ti ti-plus" style="font-size:9px;"></i> Serviço';
+    addBtn.addEventListener("click", e => {
+      e.stopPropagation();
+      closeTagsPopup();
+
+      const popup = document.createElement("div");
+      popup.className = "tags-popup";
+      activeTagsPopup = popup;
+
+      popup.innerHTML = `<div class="tags-popup-title">Serviços predefinidos</div><div class="tags-popup-grid"></div>
+        <div class="tags-popup-custom">
+          <input type="text" placeholder="Personalizado..." maxlength="20" id="custom-tag-input">
+          <button id="custom-tag-add">+ Add</button>
+        </div>`;
+
+      const grid = popup.querySelector(".tags-popup-grid");
+      SERVICOS_PREDEFINIDOS.forEach(s => {
+        const opt = document.createElement("span");
+        opt.className = "tags-popup-option" + ((c.servicos || []).includes(s.label) ? " active" : "");
+        opt.style.background = s.bg;
+        opt.style.color = s.color;
+        opt.style.borderColor = s.bg;
+        opt.innerHTML = `<i class="ti ${s.icon}" style="font-size:9px;margin-right:3px;"></i>${s.label}`;
+        opt.addEventListener("click", () => {
+          if ((c.servicos || []).includes(s.label)) return;
+          saveHistory();
+          if (!c.servicos) c.servicos = [];
+          c.servicos.push(s.label);
+          closeTagsPopup();
+          renderTags();
+          scheduleSave();
+        });
+        grid.appendChild(opt);
+      });
+
+      const customInput = popup.querySelector("#custom-tag-input");
+      popup.querySelector("#custom-tag-add").addEventListener("click", () => {
+        const v = customInput.value.trim();
+        if (!v) return;
+        if ((c.servicos || []).includes(v)) { customInput.value = ""; return; }
+        saveHistory();
+        if (!c.servicos) c.servicos = [];
+        c.servicos.push(v);
+        closeTagsPopup();
+        renderTags();
+        scheduleSave();
+      });
+      customInput.addEventListener("keydown", ev => {
+        if (ev.key === "Enter") popup.querySelector("#custom-tag-add").click();
+        ev.stopPropagation();
+      });
+
+      // Posição do popup
+      document.body.appendChild(popup);
+      const rect = addBtn.getBoundingClientRect();
+      const pw = popup.offsetWidth || 210;
+      let left = rect.left + window.scrollX;
+      if (left + pw > window.innerWidth - 10) left = window.innerWidth - pw - 10;
+      popup.style.left = left + "px";
+      popup.style.top = (rect.bottom + window.scrollY + 4) + "px";
+      customInput.focus();
+    });
+    row.appendChild(addBtn);
+  };
+
+  renderTags();
+  return row;
+}
 
 // ===== Integração com Google Sheets (salvamento automático) =====
 const WEBAPP_URL = "https://script.google.com/macros/s/AKfycbzzWtG4jkVpLvPwOAHaj-h9KK9k_8N6YWGUXfFtUDSXRiCj7ILDPvuSy9VJXhglTrzEQQ/exec";
@@ -455,6 +647,7 @@ function renderBoard() {
 
     const col = document.createElement("div");
     col.className = "col";
+    col.dataset.designer = designer;
 
     // Header
     const colHeader = document.createElement("div");
@@ -509,12 +702,22 @@ function renderBoard() {
     metaDiv.appendChild(criativosTotal);
     metaDiv.appendChild(horasTotal);
 
+    // Linha de cima: handle + nome + botão remover
+    const headerTop = document.createElement("div");
+    headerTop.className = "col-header-top";
+
+    const dragHandle = document.createElement("i");
+    dragHandle.className = "ti ti-grip-vertical col-drag-handle";
+    dragHandle.title = "Arraste para reordenar";
+    headerTop.appendChild(dragHandle);
+    headerTop.appendChild(nameInput);
+
     if (designer !== "Sem designer") {
       const removeBtn = document.createElement("button");
       removeBtn.className = "btn";
       removeBtn.title = "Remover designer (clientes vão para 'Sem designer')";
       removeBtn.innerHTML = '<i class="ti ti-trash" style="font-size:12px;color:#c0392b;"></i>';
-      removeBtn.style.cssText = "padding:2px 6px;min-width:0;border-color:#e8e6e0;";
+      removeBtn.style.cssText = "padding:2px 6px;min-width:0;border-color:#e8e6e0;flex-shrink:0;";
       removeBtn.addEventListener("click", () => {
         if (!confirm(`Remover o designer "${designer}"? Os clientes dele vão para "Sem designer".`)) return;
         saveHistory();
@@ -527,12 +730,20 @@ function renderBoard() {
         renderBoard();
         scheduleSave();
       });
-      metaDiv.appendChild(removeBtn);
+      headerTop.appendChild(removeBtn);
     }
 
-    colHeader.appendChild(nameInput);
+    colHeader.appendChild(headerTop);
     colHeader.appendChild(metaDiv);
     col.appendChild(colHeader);
+
+    // Drag de coluna — ativado pelo handle
+    dragHandle.addEventListener("mousedown", () => { col.draggable = true; });
+    dragHandle.addEventListener("mouseleave", () => { if (!dragCol) col.draggable = false; });
+    col.addEventListener("dragstart", onColDragStart);
+    col.addEventListener("dragend", () => { col.draggable = false; onColDragEnd(); });
+    col.addEventListener("dragover", onColDragOver);
+    col.addEventListener("drop", onColDrop);
 
     // Drop zone
     const zone = document.createElement("div");
@@ -696,6 +907,9 @@ function renderBoard() {
         meta.appendChild(emailBadge);
       }
 
+      // Serviços (tags interativas)
+      const servicosRow = buildServicosRow(c, designer);
+
       // Criativos row
       const criRow = document.createElement("div");
       criRow.className = "criativos-row";
@@ -780,7 +994,7 @@ function renderBoard() {
       const tMinus = document.createElement("button");
       tMinus.className = "tempo-btn";
       tMinus.textContent = "−";
-      tMinus.title = "−15 min";
+      tMinus.title = "−5 min";
 
       const tVal = document.createElement("span");
       tVal.className = "tempo-val";
@@ -794,7 +1008,7 @@ function renderBoard() {
       const tPlus = document.createElement("button");
       tPlus.className = "tempo-btn";
       tPlus.textContent = "+";
-      tPlus.title = "+15 min";
+      tPlus.title = "+5 min";
 
       tVal.addEventListener("click", () => {
         const inp = document.createElement("input");
@@ -821,9 +1035,9 @@ function renderBoard() {
 
       tMinus.addEventListener("click", e => {
         e.stopPropagation();
-        if ((c.tempo || 0) < 15) return;
+        if ((c.tempo || 0) < 5) return;
         saveHistory();
-        c.tempo = (c.tempo || 0) - 15;
+        c.tempo = (c.tempo || 0) - 5;
         tVal.textContent = formatTempo(c.tempo);
         updateTempoTotals(designer);
         scheduleSave();
@@ -832,7 +1046,7 @@ function renderBoard() {
       tPlus.addEventListener("click", e => {
         e.stopPropagation();
         saveHistory();
-        c.tempo = (c.tempo || 0) + 15;
+        c.tempo = (c.tempo || 0) + 5;
         tVal.textContent = formatTempo(c.tempo);
         updateTempoTotals(designer);
         scheduleSave();
@@ -845,6 +1059,7 @@ function renderBoard() {
 
       card.appendChild(cardTop);
       card.appendChild(meta);
+      card.appendChild(servicosRow);
       card.appendChild(criRow);
       card.appendChild(tempoRow);
 
@@ -1006,6 +1221,10 @@ document.addEventListener("keydown", e => {
   }
 });
 // ===== Fim do modal =====
+
+document.addEventListener("click", e => {
+  if (activeTagsPopup && !activeTagsPopup.contains(e.target)) closeTagsPopup();
+});
 
 // ===== Modal: Novo Designer =====
 function openAddDesignerModal() {
