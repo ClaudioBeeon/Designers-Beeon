@@ -69,6 +69,11 @@
   .edit-icon { font-size: 12px; color: #bbb; flex-shrink: 0; cursor: pointer; opacity: 0; transition: opacity 0.1s; padding: 2px; }
   .client-card:hover .edit-icon { opacity: 1; }
   .edit-icon:hover { color: #378ADD; }
+  .card-actions { display: flex; align-items: center; gap: 1px; flex-shrink: 0; }
+  .card-icon-btn { font-size: 12px; color: #bbb; cursor: pointer; opacity: 0; transition: opacity 0.1s; padding: 2px 3px; background: none; border: none; line-height: 1; }
+  .client-card:hover .card-icon-btn { opacity: 1; }
+  .card-icon-btn:hover.duplicate { color: #378ADD; }
+  .card-icon-btn:hover.remove { color: #c0392b; }
 
   .client-meta { display: flex; gap: 3px; margin-top: 5px; flex-wrap: wrap; }
   .badge { font-size: 10px; padding: 2px 6px; border-radius: 5px; line-height: 1.5; display: inline-flex; align-items: center; gap: 3px; font-weight: 500; }
@@ -582,13 +587,59 @@ function renderBoard() {
         e.stopPropagation();
       });
 
+      const actionsDiv = document.createElement("div");
+      actionsDiv.className = "card-actions";
+
       const editIcon = document.createElement("i");
-      editIcon.className = "ti ti-pencil edit-icon";
+      editIcon.className = "ti ti-pencil card-icon-btn duplicate";
       editIcon.title = "Editar nome";
       editIcon.addEventListener("click", () => nameTA.focus());
 
+      const dupBtn = document.createElement("i");
+      dupBtn.className = "ti ti-copy card-icon-btn duplicate";
+      dupBtn.title = "Duplicar para outro designer";
+      dupBtn.addEventListener("click", e => {
+        e.stopPropagation();
+        const targetDesigner = prompt(
+          "Duplicar \"" + c.cliente + "\" para qual designer?\n\n" +
+          designers.map((d, i) => (i + 1) + ". " + d).join("\n") +
+          "\n\nDigite o número ou o nome:"
+        );
+        if (!targetDesigner) return;
+        const trimmed = targetDesigner.trim();
+        let dest = designers.find(d => d.toLowerCase() === trimmed.toLowerCase());
+        if (!dest) {
+          const num = parseInt(trimmed);
+          if (num >= 1 && num <= designers.length) dest = designers[num - 1];
+        }
+        if (!dest) { alert("Designer não encontrado."); return; }
+        if (dest === designer) { alert("O cliente já está nesse designer."); return; }
+        saveHistory();
+        const clone = Object.assign({}, c, { designer: dest });
+        if (!state[dest]) state[dest] = [];
+        state[dest].push(clone);
+        renderBoard();
+        scheduleSave();
+      });
+
+      const removeBtn = document.createElement("i");
+      removeBtn.className = "ti ti-x card-icon-btn remove";
+      removeBtn.title = "Remover cliente";
+      removeBtn.addEventListener("click", e => {
+        e.stopPropagation();
+        if (!confirm('Remover "' + c.cliente + '" de ' + designer + '?')) return;
+        saveHistory();
+        state[designer] = (state[designer] || []).filter(x => x.cliente !== c.cliente);
+        renderBoard();
+        scheduleSave();
+      });
+
+      actionsDiv.appendChild(editIcon);
+      actionsDiv.appendChild(dupBtn);
+      actionsDiv.appendChild(removeBtn);
+
       cardTop.appendChild(nameTA);
-      cardTop.appendChild(editIcon);
+      cardTop.appendChild(actionsDiv);
 
       // Badges
       const meta = document.createElement("div");
