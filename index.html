@@ -10,6 +10,23 @@
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: 'Inter', -apple-system, sans-serif; background: #F3F3F1; color: #1a1a18; }
 
+  .sidebar { position: fixed; left: 12px; top: 12px; bottom: 12px; width: 56px; background: #fff; border-radius: 24px; box-shadow: 0 4px 18px rgba(20,20,18,0.1); z-index: 200; display: flex; flex-direction: column; align-items: center; padding: 16px 0; transition: width .18s ease; overflow: hidden; }
+  .sidebar:hover { width: 220px; align-items: flex-start; }
+  .sidebar-top { display: flex; flex-direction: column; gap: 4px; width: 100%; padding: 0 8px; }
+  .sidebar-bottom { margin-top: auto; display: flex; flex-direction: column; gap: 4px; width: 100%; padding: 0 8px; }
+  .sb-item { display: flex; align-items: center; gap: 12px; width: 100%; padding: 10px; border-radius: 14px; cursor: pointer; color: #78766e; transition: background .12s, color .12s; white-space: nowrap; background: none; border: none; font-family: inherit; text-align: left; }
+  .sb-item:hover { background: #F3F3F1; color: #1a1a18; }
+  .sb-item.active { background: #0000FB; color: #fff; }
+  .sb-item i { font-size: 18px; flex-shrink: 0; width: 24px; text-align: center; }
+  .sb-item span { font-size: 12.5px; font-weight: 500; opacity: 0; transition: opacity .15s; }
+  .sidebar:hover .sb-item span { opacity: 1; }
+  .sb-avatar-btn { width: 40px; height: 40px; border-radius: 50%; background: #1a1a18; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin: 0 8px; }
+  .sb-avatar-btn i { color: #fff; font-size: 17px; }
+
+  .app-main { padding-left: 84px; }
+  .page { display: none; }
+  .page.active { display: block; }
+
   .topbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 1.1rem 1.5rem 0.6rem; }
   .brand { display: flex; align-items: center; gap: 10px; }
   .brand-dot { width: 34px; height: 34px; background: #0000FB; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
@@ -63,12 +80,19 @@
   .designer-name-input:focus { background: #f1efe8; }
   .designer-role { font-size: 10px; color: #a3a091; margin-top: 2px; margin-bottom: 12px; }
   .designer-stats-row { display: flex; justify-content: space-around; border-top: 1px solid #eeece4; padding-top: 10px; }
+  .home-office-row { margin-top: 10px; padding-top: 10px; border-top: 1px solid #eeece4; }
+  .ho-label { font-size: 9px; color: #a3a091; text-align: center; margin-bottom: 5px; font-weight: 500; }
+  .ho-bars { display: flex; gap: 3px; justify-content: center; }
+  .ho-bar { width: 100%; max-width: 20px; height: 6px; border-radius: 3px; background: #eeece4; cursor: pointer; transition: background .12s; flex: 1; }
+  .ho-bar:hover { background: #d9d6ca; }
+  .ho-bar.filled { background: #3B9B3B; }
+  .ho-bar.filled:hover { background: #2f7e2f; }
   .dstat { display: flex; flex-direction: column; align-items: center; gap: 2px; }
   .dstat-num { font-size: 14px; font-weight: 600; }
   .dstat-label { font-size: 9px; color: #a3a091; }
 
   .clients-inner { max-height: 0; overflow: hidden; transition: max-height .3s ease; }
-  .expanded .clients-inner { max-height: 580px; overflow-y: auto; margin-top: 14px; padding-top: 12px; padding-right: 4px; border-top: 1px dashed #e0ddd3; }
+  .expanded .clients-inner { max-height: 380px; overflow-y: auto; margin-top: 14px; padding-top: 12px; padding-right: 4px; border-top: 1px dashed #e0ddd3; }
   .clients-inner::-webkit-scrollbar { width: 6px; }
   .clients-inner::-webkit-scrollbar-thumb { background: #dcd9cd; border-radius: 4px; }
   .clients-inner::-webkit-scrollbar-thumb:hover { background: #b8b4a6; }
@@ -156,12 +180,26 @@
 </head>
 <body>
 
+<div class="sidebar">
+  <div class="sidebar-top">
+    <button class="sb-item active" data-page="designers" onclick="switchPage('designers')"><i class="ti ti-layout-columns"></i><span>Designers</span></button>
+    <button class="sb-item" data-page="atendimento" onclick="switchPage('atendimento')"><i class="ti ti-headset"></i><span>Atendimento</span></button>
+    <button class="sb-item" data-page="servico" onclick="switchPage('servico')"><i class="ti ti-tag"></i><span>Serviço</span></button>
+    <button class="sb-item" data-page="clientes" onclick="switchPage('clientes')"><i class="ti ti-address-book"></i><span>Clientes</span></button>
+  </div>
+  <div class="sidebar-bottom">
+    <div class="sb-avatar-btn"><i class="ti ti-user"></i></div>
+  </div>
+</div>
+
+<div class="app-main">
+
 <div class="topbar">
   <div class="brand">
     <div class="brand-dot"><i class="ti ti-layout-columns"></i></div>
     <div class="brand-text">
       <p>Painel Beeon</p>
-      <span>Clientes por designer</span>
+      <span id="page-subtitle">Clientes por designer</span>
     </div>
   </div>
   <div class="search-bar" onclick="openSearch()">
@@ -178,6 +216,8 @@
 </div>
 
 <div class="content">
+
+  <div class="page active" id="page-designers">
 
   <div class="kpi-grid" id="kpi-grid"></div>
 
@@ -208,6 +248,31 @@
       </div>
     </div>
   </div>
+
+  </div>
+
+  <div class="page" id="page-atendimento">
+    <div class="section-title"><span>Atendimento</span></div>
+    <div class="designers-grid" id="atendimento-grid"></div>
+  </div>
+
+  <div class="page" id="page-servico">
+    <div class="section-title"><span>Serviços</span></div>
+    <div class="designers-grid" id="servico-grid"></div>
+  </div>
+
+  <div class="page" id="page-clientes">
+    <div class="section-title">
+      <span>Todos os clientes</span>
+      <div class="section-actions">
+        <button class="sort-btn" id="sort-az-clientes-btn" onclick="toggleSortClientesAZ()"><i class="ti ti-sort-ascending-letters"></i> A-Z</button>
+      </div>
+    </div>
+    <div class="designers-grid" id="clientes-grid" style="grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));"></div>
+  </div>
+
+
+</div>
 
 </div>
 
@@ -327,6 +392,28 @@ let state = {};
 let history = [];
 let sortAZ = false;
 let expandedSet = new Set(["Paulo"]);
+let currentPage = "designers";
+let designerHomeOffice = {};
+let sortClientesAZ = false;
+let expandedAtendSet = new Set();
+let expandedServicoSet = new Set();
+const PAGE_SUBTITLES = {
+  designers: "Clientes por designer",
+  atendimento: "Clientes por atendimento",
+  servico: "Clientes por serviço",
+  clientes: "Todos os clientes"
+};
+
+function switchPage(page) {
+  currentPage = page;
+  document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
+  document.getElementById("page-" + page).classList.add("active");
+  document.querySelectorAll(".sb-item").forEach(b => b.classList.toggle("active", b.dataset.page === page));
+  document.getElementById("page-subtitle").textContent = PAGE_SUBTITLES[page] || "";
+  if (page === "atendimento") renderAtendimento();
+  if (page === "servico") renderServico();
+  if (page === "clientes") renderClientesPage();
+}
 
 const SERVICOS_PREDEFINIDOS = [
   { label: "Estático",  bg: "#E6F1FB", color: "#185FA5" },
@@ -354,7 +441,7 @@ function initState() {
 }
 
 function saveHistory() {
-  history.push(JSON.stringify({ designers, state, designerPhotos }));
+  history.push(JSON.stringify({ designers, state, designerPhotos, designerHomeOffice }));
   if (history.length > 40) history.shift();
   document.getElementById("undo-icon").parentElement.style.opacity = "1";
 }
@@ -365,6 +452,7 @@ function undo() {
   designers = snap.designers;
   state = snap.state;
   designerPhotos = snap.designerPhotos || {};
+  designerHomeOffice = snap.designerHomeOffice || {};
   renderAll();
   scheduleSave();
 }
@@ -401,6 +489,9 @@ function renderAll() {
   renderDesigners();
   renderCharts();
   renderActivity();
+  if (currentPage === "atendimento") renderAtendimento();
+  if (currentPage === "servico") renderServico();
+  if (currentPage === "clientes") renderClientesPage();
 }
 
 function renderKPIs() {
@@ -502,9 +593,32 @@ function renderDesigners() {
 
     card.appendChild(top);
 
+    if (designer !== "Sem designer") {
+      const hoRow = document.createElement("div");
+      hoRow.className = "home-office-row";
+      const hoUsed = designerHomeOffice[designer] || 0;
+      hoRow.innerHTML = `<div class="ho-label">Home Office</div><div class="ho-bars"></div>`;
+      const hoBars = hoRow.querySelector(".ho-bars");
+      for (let i = 0; i < 6; i++) {
+        const bar = document.createElement("div");
+        bar.className = "ho-bar" + (i < hoUsed ? " filled" : "");
+        bar.title = (i+1) + "º home office";
+        bar.addEventListener("click", e => {
+          e.stopPropagation();
+          saveHistory();
+          const cur = designerHomeOffice[designer] || 0;
+          designerHomeOffice[designer] = (cur === i + 1) ? i : i + 1;
+          renderDesigners();
+          scheduleSave();
+        });
+        hoBars.appendChild(bar);
+      }
+      card.appendChild(hoRow);
+    }
+
     const inner = document.createElement("div");
     inner.className = "clients-inner";
-    clients.forEach((c, idx) => inner.appendChild(buildClientCard(c, designer, idx)));
+    clients.forEach((c) => inner.appendChild(buildClientCard(c, designer, false)));
     const addMini = document.createElement("div");
     addMini.className = "add-client-mini";
     addMini.textContent = "+ Adicionar cliente";
@@ -518,7 +632,7 @@ function renderDesigners() {
 
 let dragClientData = null;
 
-function buildClientCard(c, designer, idx) {
+function buildClientCard(c, designer, showDesignerBadge) {
   const card = document.createElement("div");
   card.className = "client-card";
   card.draggable = true;
@@ -584,6 +698,14 @@ function buildClientCard(c, designer, idx) {
   });
   topRow.appendChild(actions);
   card.appendChild(topRow);
+
+  if (showDesignerBadge) {
+    const dCol = getColor(designer);
+    const dBadge = document.createElement("span");
+    dBadge.style.cssText = `font-size:9.5px;font-weight:600;background:${dCol.bg};color:${dCol.fg};padding:2px 8px;border-radius:8px;display:inline-block;margin-top:8px;margin-left:38px;`;
+    dBadge.innerHTML = `<i class="ti ti-palette" style="font-size:9px;"></i> ${designer}`;
+    card.appendChild(dBadge);
+  }
 
   const atendEl = document.createElement("span");
   atendEl.className = "client-atend";
@@ -780,6 +902,166 @@ function renderActivity() {
   `).join("") || `<div style="font-size:11px;color:#a3a091;">Nenhuma atividade registrada ainda.</div>`;
 }
 
+// ============ PÁGINA: ATENDIMENTO ============
+
+function getAllClientsFlat() {
+  const list = [];
+  designers.forEach(d => (state[d]||[]).forEach(c => list.push({ c, designer: d })));
+  return list;
+}
+
+function renderAtendimento() {
+  const grid = document.getElementById("atendimento-grid");
+  grid.innerHTML = "";
+  const flat = getAllClientsFlat();
+  const byAtend = {};
+  flat.forEach(({c, designer}) => {
+    const a = c.atend || "Sem atendimento";
+    if (!byAtend[a]) byAtend[a] = [];
+    byAtend[a].push({ c, designer });
+  });
+  const names = Object.keys(byAtend).sort((a,b) => a.localeCompare(b));
+
+  names.forEach(atend => {
+    const items = byAtend[atend];
+    const col = COLOR_PALETTE[Math.abs(hashStr(atend)) % COLOR_PALETTE.length];
+    const card = document.createElement("div");
+    card.className = "designer-card" + (expandedAtendSet.has(atend) ? " expanded" : "");
+
+    const top = document.createElement("div");
+    top.className = "dcard-top";
+    top.innerHTML = `
+      <div class="avatar-wrap"><div class="avatar" style="background:${col.bg};color:${col.fg};">${initials(atend)}</div></div>
+      <div style="font-size:13px;font-weight:600;margin-bottom:2px;">${atend}</div>
+      <div class="dcard-top-spacer"></div>
+      <div class="designer-stats-row">
+        <div class="dstat"><div class="dstat-num">${items.length}</div><div class="dstat-label">Clientes</div></div>
+        <div class="dstat"><div class="dstat-num">${items.reduce((s,i)=>s+(i.c.criativos||0),0)}</div><div class="dstat-label">Criativos</div></div>
+      </div>
+    `;
+    top.addEventListener("click", () => {
+      if (expandedAtendSet.has(atend)) expandedAtendSet.delete(atend); else expandedAtendSet.add(atend);
+      renderAtendimento();
+    });
+    card.appendChild(top);
+
+    const inner = document.createElement("div");
+    inner.className = "clients-inner";
+    items.forEach(({c, designer}) => inner.appendChild(buildInfoCard(c, designer)));
+    card.appendChild(inner);
+
+    grid.appendChild(card);
+  });
+}
+
+// ============ PÁGINA: SERVIÇO ============
+
+function renderServico() {
+  const grid = document.getElementById("servico-grid");
+  grid.innerHTML = "";
+  const flat = getAllClientsFlat();
+  const byServico = {};
+  flat.forEach(({c, designer}) => {
+    (c.servicos && c.servicos.length ? c.servicos : ["Sem serviço definido"]).forEach(s => {
+      if (!byServico[s]) byServico[s] = [];
+      byServico[s].push({ c, designer });
+    });
+  });
+  const names = Object.keys(byServico).sort((a,b) => a.localeCompare(b));
+
+  names.forEach(servico => {
+    const items = byServico[servico];
+    const st = getServicoStyle(servico);
+    const card = document.createElement("div");
+    card.className = "designer-card" + (expandedServicoSet.has(servico) ? " expanded" : "");
+
+    const top = document.createElement("div");
+    top.className = "dcard-top";
+    top.innerHTML = `
+      <div class="avatar-wrap"><div class="avatar" style="background:${st.bg};color:${st.color};"><i class="ti ti-tag"></i></div></div>
+      <div style="font-size:13px;font-weight:600;margin-bottom:2px;">${servico}</div>
+      <div class="dcard-top-spacer"></div>
+      <div class="designer-stats-row">
+        <div class="dstat"><div class="dstat-num">${items.length}</div><div class="dstat-label">Clientes</div></div>
+        <div class="dstat"><div class="dstat-num">${items.reduce((s,i)=>s+(i.c.criativos||0),0)}</div><div class="dstat-label">Criativos</div></div>
+      </div>
+    `;
+    top.addEventListener("click", () => {
+      if (expandedServicoSet.has(servico)) expandedServicoSet.delete(servico); else expandedServicoSet.add(servico);
+      renderServico();
+    });
+    card.appendChild(top);
+
+    const inner = document.createElement("div");
+    inner.className = "clients-inner";
+    items.forEach(({c, designer}) => inner.appendChild(buildInfoCard(c, designer)));
+    card.appendChild(inner);
+
+    grid.appendChild(card);
+  });
+}
+
+// Card de leitura (usado em Atendimento e Serviço) — mostra dados sem tempo, sem edição
+function buildInfoCard(c, designer) {
+  const card = document.createElement("div");
+  card.className = "client-card";
+  card.draggable = false;
+  card.style.cursor = "default";
+
+  const clientCol = COLOR_PALETTE[Math.abs(hashStr(c.cliente)) % COLOR_PALETTE.length];
+  const topRow = document.createElement("div");
+  topRow.className = "client-top-row";
+  topRow.innerHTML = `
+    <div class="client-icon" style="background:${clientCol.bg};color:${clientCol.fg};">${initials(c.cliente)}</div>
+    <div class="client-name-wrap"><div style="font-size:12px;font-weight:600;">${c.cliente}</div></div>
+  `;
+  card.appendChild(topRow);
+
+  const infoRow = document.createElement("div");
+  infoRow.style.cssText = "margin-top:8px;margin-left:38px;font-size:9.5px;color:#78766e;display:flex;gap:8px;flex-wrap:wrap;align-items:center;";
+  const col = getColor(designer);
+  infoRow.innerHTML = `
+    <span style="background:${col.bg};color:${col.fg};padding:2px 8px;border-radius:8px;font-weight:600;"><i class="ti ti-palette" style="font-size:9px;"></i> ${designer}</span>
+    <span style="background:#F3F3F1;padding:2px 8px;border-radius:8px;">${c.atend}</span>
+    <span><i class="ti ti-stack" style="font-size:10px;"></i> ${c.criativos||0} criativos</span>
+  `;
+  card.appendChild(infoRow);
+
+  if (c.servicos && c.servicos.length) {
+    const tagsRow = document.createElement("div");
+    tagsRow.className = "client-tags-row";
+    c.servicos.forEach(label => {
+      const st = getServicoStyle(label);
+      const tag = document.createElement("span");
+      tag.className = "tag";
+      tag.style.background = st.bg; tag.style.color = st.color;
+      tag.textContent = label;
+      tagsRow.appendChild(tag);
+    });
+    card.appendChild(tagsRow);
+  }
+
+  return card;
+}
+
+// ============ PÁGINA: TODOS OS CLIENTES ============
+
+function toggleSortClientesAZ() {
+  sortClientesAZ = !sortClientesAZ;
+  document.getElementById("sort-az-clientes-btn").classList.toggle("active", sortClientesAZ);
+  renderClientesPage();
+}
+
+function renderClientesPage() {
+  const grid = document.getElementById("clientes-grid");
+  grid.innerHTML = "";
+  let flat = getAllClientsFlat();
+  if (sortClientesAZ) flat.sort((a,b) => a.c.cliente.localeCompare(b.c.cliente));
+  flat.forEach(({c, designer}) => {
+    grid.appendChild(buildClientCard(c, designer, true));
+  });
+}
+
 // ============ MODAIS ============
 
 function openAddClientModal(preselectDesigner) {
@@ -911,7 +1193,7 @@ function setSyncStatus(mode) {
 }
 
 function buildPayload() {
-  return { designers, colors: designerColors, roles: designerRoles, photos: designerPhotos, state };
+  return { designers, colors: designerColors, roles: designerRoles, photos: designerPhotos, homeOffice: designerHomeOffice, state };
 }
 function isUserEditing() {
   const el = document.activeElement;
@@ -923,6 +1205,7 @@ function applyRemoteData(data) {
   if (data.colors) Object.assign(designerColors, data.colors);
   if (data.roles) Object.assign(designerRoles, data.roles);
   if (data.photos) designerPhotos = data.photos;
+  if (data.homeOffice) designerHomeOffice = data.homeOffice;
   if (data.state) state = data.state;
   designers.forEach(d => { if (!state[d]) state[d] = []; });
   isApplyingRemote = false;
