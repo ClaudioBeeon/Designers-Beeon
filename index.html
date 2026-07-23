@@ -68,7 +68,10 @@
   .dstat-label { font-size: 9px; color: #a3a091; }
 
   .clients-inner { max-height: 0; overflow: hidden; transition: max-height .3s ease; }
-  .expanded .clients-inner { max-height: 2000px; margin-top: 14px; padding-top: 12px; border-top: 1px dashed #e0ddd3; }
+  .expanded .clients-inner { max-height: 380px; overflow-y: auto; margin-top: 14px; padding-top: 12px; padding-right: 4px; border-top: 1px dashed #e0ddd3; }
+  .clients-inner::-webkit-scrollbar { width: 6px; }
+  .clients-inner::-webkit-scrollbar-thumb { background: #dcd9cd; border-radius: 4px; }
+  .clients-inner::-webkit-scrollbar-thumb:hover { background: #b8b4a6; }
   .client-card { background: #fff; border-radius: 14px; padding: 12px; margin-bottom: 8px; cursor: grab; box-shadow: 0 2px 8px rgba(20,20,18,0.13); transition: box-shadow .1s; }
   .client-card:hover { box-shadow: 0 4px 14px rgba(20,20,18,0.18); }
   .client-card.dragging { opacity: 0.35; }
@@ -433,11 +436,11 @@ function renderKPIs() {
 function renderDesigners() {
   const grid = document.getElementById("designers-grid");
   grid.innerHTML = "";
-  let list = designers.slice();
-  if (sortAZ) list.sort((a,b) => a.localeCompare(b));
+  const list = designers.slice();
 
   list.forEach(designer => {
-    const clients = state[designer] || [];
+    let clients = (state[designer] || []).slice();
+    if (sortAZ) clients.sort((a,b) => a.cliente.localeCompare(b.cliente));
     const col = getColor(designer);
     const card = document.createElement("div");
     card.className = "designer-card" + (expandedSet.has(designer) ? " expanded" : "");
