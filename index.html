@@ -344,12 +344,6 @@
 </div>
 
 <div class="search-overlay hidden" id="search-overlay" onclick="if(event.target===this) closeSearch()">
- <div class="client-detail-overlay hidden" id="client-detail-overlay" onclick="if(event.target===this) closeClientDetail()">
-  <div class="client-detail-box">
-    <button class="client-detail-close" onclick="closeClientDetail()"><i class="ti ti-x"></i></button>
-    <div id="client-detail-content"></div>
-  </div>
-</div>
   <div class="search-box">
     <div class="search-input-wrap">
       <i class="ti ti-search"></i>
@@ -357,6 +351,13 @@
       <i class="ti ti-x" style="cursor:pointer;" onclick="closeSearch()"></i>
     </div>
     <div class="search-results" id="search-results"></div>
+  </div>
+</div>
+
+<div class="client-detail-overlay hidden" id="client-detail-overlay" onclick="if(event.target===this) closeClientDetail()">
+  <div class="client-detail-box">
+    <button class="client-detail-close" onclick="closeClientDetail()"><i class="ti ti-x"></i></button>
+    <div id="client-detail-content"></div>
   </div>
 </div>
 
@@ -1197,7 +1198,7 @@ function renderAtendimento() {
 
     const top = document.createElement("div");
     top.className = "dcard-top";
-   top.innerHTML = `
+    top.innerHTML = `
       <div class="avatar-wrap"><div class="avatar" style="background:${col.bg};color:${col.fg};">${ATENDIMENTO_PHOTOS[atend] ? `<img src="${ATENDIMENTO_PHOTOS[atend]}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">` : initials(atend)}</div></div>
       <div style="font-size:13px;font-weight:600;margin-bottom:2px;">${atend}</div>
       <div class="dcard-top-spacer"></div>
@@ -1361,11 +1362,7 @@ function runSearch(q) {
   if (clientMatches.length) {
     html += `<div class="search-label">Clientes</div>`;
     clientMatches.slice(0,15).forEach(m => {
-      if (!document.getElementById("client-detail-overlay").classList.contains("hidden")) {
-    const openName = document.querySelector("#client-detail-content .client-name-input")?.value
-      || document.querySelector("#client-detail-content .client-name-wrap div")?.textContent;
-    if (openName) openClientDetail(openName);
-  }
+      html += `<div class="search-result" onclick="closeSearch();openClientDetail('${m.cliente.replace(/'/g,"\\'")}')"><i class="ti ti-user" style="color:#a3a091;font-size:15px;"></i><span class="sr-name">${m.cliente}</span><span class="sr-meta">${m.designer}</span></div>`;
     });
   }
   if (designerMatches.length) {
@@ -1377,7 +1374,7 @@ function runSearch(q) {
   if (!clientMatches.length && !designerMatches.length) html = `<div class="search-empty">Nenhum resultado encontrado.</div>`;
   results.innerHTML = html;
 }
- function openClientDetail(clienteName) {
+function openClientDetail(clienteName) {
   const group = mergeEntriesByClient(getAllClientsFlat()).find(g => normalizeName(g.clienteName) === normalizeName(clienteName));
   if (!group) return;
   const content = document.getElementById("client-detail-content");
