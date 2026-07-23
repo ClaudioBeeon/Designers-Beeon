@@ -155,6 +155,10 @@
 
   .search-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.35); display: flex; align-items: flex-start; justify-content: center; padding-top: 90px; z-index: 1000; }
   .search-overlay.hidden { display: none; }
+  .client-detail-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.45); display: flex; align-items: center; justify-content: center; z-index: 1100; }
+  .client-detail-overlay.hidden { display: none; }
+  .client-detail-box { background: #F3F3F1; border-radius: 20px; width: 94vw; height: 92vh; max-width: 1100px; overflow-y: auto; padding: 24px; position: relative; }
+  .client-detail-close { position: absolute; top: 18px; right: 18px; width: 36px; height: 36px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(20,20,18,0.1); border: none; cursor: pointer; font-size: 16px; }
   .search-box { background: #fff; border-radius: 16px; width: 460px; max-width: 92vw; box-shadow: 0 12px 40px rgba(0,0,0,0.18); overflow: hidden; max-height: 70vh; display: flex; flex-direction: column; }
   .search-input-wrap { display: flex; align-items: center; gap: 10px; padding: 14px 16px; border-bottom: 1px solid #eeece4; flex-shrink: 0; }
   .search-input-wrap i { color: #a3a091; font-size: 18px; }
@@ -340,6 +344,12 @@
 </div>
 
 <div class="search-overlay hidden" id="search-overlay" onclick="if(event.target===this) closeSearch()">
+ <div class="client-detail-overlay hidden" id="client-detail-overlay" onclick="if(event.target===this) closeClientDetail()">
+  <div class="client-detail-box">
+    <button class="client-detail-close" onclick="closeClientDetail()"><i class="ti ti-x"></i></button>
+    <div id="client-detail-content"></div>
+  </div>
+</div>
   <div class="search-box">
     <div class="search-input-wrap">
       <i class="ti ti-search"></i>
@@ -505,6 +515,11 @@ function renderAll() {
   if (currentPage === "atendimento") renderAtendimento();
   if (currentPage === "servico") renderServico();
   if (currentPage === "clientes") renderClientesPage();
+  if (!document.getElementById("client-detail-overlay").classList.contains("hidden")) {
+    const openName = document.querySelector("#client-detail-content .client-name-input")?.value
+      || document.querySelector("#client-detail-content .client-name-wrap div")?.textContent;
+    if (openName) openClientDetail(openName);
+  }
 }
 
 function renderKPIs() {
@@ -1346,7 +1361,11 @@ function runSearch(q) {
   if (clientMatches.length) {
     html += `<div class="search-label">Clientes</div>`;
     clientMatches.slice(0,15).forEach(m => {
-      html += `<div class="search-result" onclick="goToDesigner('${m.designer.replace(/'/g,"\\'")}');closeSearch()"><i class="ti ti-user" style="color:#a3a091;font-size:15px;"></i><span class="sr-name">${m.cliente}</span><span class="sr-meta">${m.designer}</span></div>`;
+      if (!document.getElementById("client-detail-overlay").classList.contains("hidden")) {
+    const openName = document.querySelector("#client-detail-content .client-name-input")?.value
+      || document.querySelector("#client-detail-content .client-name-wrap div")?.textContent;
+    if (openName) openClientDetail(openName);
+  }
     });
   }
   if (designerMatches.length) {
@@ -1358,6 +1377,15 @@ function runSearch(q) {
   if (!clientMatches.length && !designerMatches.length) html = `<div class="search-empty">Nenhum resultado encontrado.</div>`;
   results.innerHTML = html;
 }
+ function openClientDetail(clienteName) {
+  const group = mergeEntriesByClient(getAllClientsFlat()).find(g => normalizeName(g.clienteName) === normalizeName(clienteName));
+  if (!group) return;
+  const content = document.getElementById("client-detail-content");
+  content.innerHTML = "";
+  content.appendChild(buildMergedCard(group, "clientes", true));
+  document.getElementById("client-detail-overlay").classList.remove("hidden");
+}
+function closeClientDetail() { document.getElementById("client-detail-overlay").classList.add("hidden"); }
 function goToDesigner(d) {
   expandedSet.add(d);
   renderDesigners();
