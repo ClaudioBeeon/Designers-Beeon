@@ -14,13 +14,13 @@
   .sidebar:hover { width: 220px; }
   .sidebar-top { display: flex; flex-direction: column; gap: 4px; width: 100%; padding: 0 8px; }
   .sidebar-bottom { margin-top: auto; display: flex; flex-direction: column; gap: 4px; width: 100%; padding: 0 8px; }
-  .sb-item { display: flex; align-items: center; justify-content: center; gap: 12px; width: 100%; padding: 10px; border-radius: 14px; cursor: pointer; color: #78766e; transition: background .12s, color .12s; white-space: nowrap; background: none; border: none; font-family: inherit; text-align: left; }
-  .sidebar:hover .sb-item { justify-content: flex-start; }
+  .sb-item { display: flex; align-items: center; justify-content: center; gap: 0; width: 100%; padding: 10px 8px; border-radius: 14px; cursor: pointer; color: #78766e; transition: background .12s, color .12s; white-space: nowrap; background: none; border: none; font-family: inherit; text-align: left; }
+  .sidebar:hover .sb-item { justify-content: flex-start; gap: 12px; }
   .sb-item:hover { background: #F3F3F1; color: #1a1a18; }
   .sb-item.active { background: #0000FB; color: #fff; }
   .sb-item i { font-size: 18px; flex-shrink: 0; width: 24px; text-align: center; }
-  .sb-item span { font-size: 12.5px; font-weight: 500; opacity: 0; transition: opacity .15s; }
-  .sidebar:hover .sb-item span { opacity: 1; }
+  .sb-item span { font-size: 12.5px; font-weight: 500; opacity: 0; max-width: 0; overflow: hidden; transition: opacity .15s, max-width .18s ease; }
+  .sidebar:hover .sb-item span { opacity: 1; max-width: 160px; }
   .sb-avatar-btn { width: 40px; height: 40px; border-radius: 50%; background: #1a1a18; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin: 0 8px; }
   .sb-avatar-btn i { color: #fff; font-size: 17px; }
 
@@ -97,7 +97,7 @@
   .clients-inner::-webkit-scrollbar { width: 6px; }
   .clients-inner::-webkit-scrollbar-thumb { background: #dcd9cd; border-radius: 4px; }
   .clients-inner::-webkit-scrollbar-thumb:hover { background: #b8b4a6; }
-  .client-card { background: #fff; border-radius: 14px; padding: 12px; margin-bottom: 8px; cursor: grab; box-shadow: 0 2px 8px rgba(20,20,18,0.13); transition: box-shadow .1s; }
+  .client-card { background: #fff; border-radius: 14px; padding: 12px; margin-bottom: 8px; cursor: grab; box-shadow: 0 2px 8px rgba(20,20,18,0.13); transition: box-shadow .1s; display: flex; flex-direction: column; height: 100%; }
   .client-card:hover { box-shadow: 0 4px 14px rgba(20,20,18,0.18); }
   .client-card.dragging { opacity: 0.35; }
   .client-top-row { display: flex; align-items: center; gap: 8px; }
@@ -269,7 +269,7 @@
         <button class="sort-btn" id="sort-az-clientes-btn" onclick="toggleSortClientesAZ()"><i class="ti ti-sort-ascending-letters"></i> A-Z</button>
       </div>
     </div>
-    <div class="designers-grid" id="clientes-grid" style="grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));"></div>
+    <div class="designers-grid" id="clientes-grid" style="grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); align-items: stretch;"></div>
   </div>
 
 
@@ -509,7 +509,8 @@ function renderAll() {
 
 function renderKPIs() {
   const grid = document.getElementById("kpi-grid");
-  const totalClientes = designers.reduce((s,d)=>s+(state[d]||[]).length, 0);
+  const clientesUnicos = mergeEntriesByClient(getAllClientsFlat().filter(({c}) => !isHiddenOn(c, "clientes")));
+  const totalClientes = clientesUnicos.length;
   const totalCriat = designers.reduce((s,d)=>s+totalCriativos(d), 0);
   const totalMin = designers.reduce((s,d)=>s+totalTempoMin(d), 0);
   const avgCriat = totalClientes ? (totalCriat/totalClientes).toFixed(1) : 0;
