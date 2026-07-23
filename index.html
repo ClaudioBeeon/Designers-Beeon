@@ -11,10 +11,11 @@
   body { font-family: 'Inter', -apple-system, sans-serif; background: #F3F3F1; color: #1a1a18; }
 
   .sidebar { position: fixed; left: 12px; top: 12px; bottom: 12px; width: 56px; background: #fff; border-radius: 24px; box-shadow: 0 4px 18px rgba(20,20,18,0.1); z-index: 200; display: flex; flex-direction: column; align-items: center; padding: 16px 0; transition: width .18s ease; overflow: hidden; }
-  .sidebar:hover { width: 220px; align-items: flex-start; }
+  .sidebar:hover { width: 220px; }
   .sidebar-top { display: flex; flex-direction: column; gap: 4px; width: 100%; padding: 0 8px; }
   .sidebar-bottom { margin-top: auto; display: flex; flex-direction: column; gap: 4px; width: 100%; padding: 0 8px; }
-  .sb-item { display: flex; align-items: center; gap: 12px; width: 100%; padding: 10px; border-radius: 14px; cursor: pointer; color: #78766e; transition: background .12s, color .12s; white-space: nowrap; background: none; border: none; font-family: inherit; text-align: left; }
+  .sb-item { display: flex; align-items: center; justify-content: center; gap: 12px; width: 100%; padding: 10px; border-radius: 14px; cursor: pointer; color: #78766e; transition: background .12s, color .12s; white-space: nowrap; background: none; border: none; font-family: inherit; text-align: left; }
+  .sidebar:hover .sb-item { justify-content: flex-start; }
   .sb-item:hover { background: #F3F3F1; color: #1a1a18; }
   .sb-item.active { background: #0000FB; color: #fff; }
   .sb-item i { font-size: 18px; flex-shrink: 0; width: 24px; text-align: center; }
@@ -322,6 +323,18 @@
     <div class="modal-actions">
       <button class="btn" onclick="closeAddDesignerModal()">Cancelar</button>
       <button class="btn btn-primary" onclick="submitAddDesigner()"><i class="ti ti-check"></i> Adicionar</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay hidden" id="confirm-remove-modal">
+  <div class="modal-box">
+    <h2><i class="ti ti-trash"></i> Remover cliente</h2>
+    <p id="confirm-remove-text" style="font-size:12.5px;color:#55534c;margin-bottom:16px;line-height:1.5;"></p>
+    <div class="modal-actions" style="justify-content:flex-start;flex-wrap:wrap;">
+      <button class="btn" onclick="closeConfirmRemove()">Cancelar</button>
+      <button class="btn" id="confirm-remove-section-btn">Remover só desta seção</button>
+      <button class="btn" id="confirm-remove-all-btn" style="background:#FBEAF0;color:#993556;">Remover de tudo</button>
     </div>
   </div>
 </div>
@@ -902,7 +915,15 @@ function renderActivity() {
   `).join("") || `<div style="font-size:11px;color:#a3a091;">Nenhuma atividade registrada ainda.</div>`;
 }
 
-// ============ PÁGINA: ATENDIMENTO ============
+// ============ MERGE DE CLIENTES DUPLICADOS ============
+
+function normalizeName(s) { return (s||"").trim().toLowerCase(); }
+
+function isHiddenOn(c, pageKey) { return !!(c.hidden && c.hidden[pageKey]); }
+function setHidden(c, pageKey, value) {
+  if (!c.hidden) c.hidden = {};
+  c.hidden[pageKey] = value;
+}
 
 function getAllClientsFlat() {
   const list = [];
@@ -910,10 +931,233 @@ function getAllClientsFlat() {
   return list;
 }
 
+// Agrupa uma lista de {c, designer} por nome de cliente (ignora maiúsculas/espaços),
+// juntando as várias cópias (ex: um designer faz vídeo, outro faz estático do mesmo cliente).
+function mergeEntriesByClient(items) {
+  const map = new Map();
+  items.forEach(item => {
+    const key = normalizeName(item.c.cliente);
+    if (!map.has(key)) map.set(key, { clienteName: item.c.cliente, entries: [] });
+    map.get(key).entries.push(item);
+  });
+  return [...map.values()].sort((a,b) => a.clienteName.localeCompare(b.clienteName));
+}
+
+// ============ MODAL: REMOVER (por seção ou tudo) ============
+
+let pendingRemoveGroup = null;
+let pendingRemovePageKey = null;
+let pendingRemoveRerender = null;
+
+function openRemoveChoice(group, pageKey, rerenderFn) {
+  pendingRemoveGroup = group;
+  pendingRemovePageKey = pageKey;
+  pendingRemoveRerender = rerenderFn;
+  const nDesigners = new Set(group.entries.map(e => e.designer)).size;
+  document.getElementById("confirm-remove-text").textContent =
+    `"${group.clienteName}" está com ${nDesigners} designer(es). O que deseja fazer?`;
+  document.getElementById("confirm-remove-modal").classList.remove("hidden");
+}
+function closeConfirmRemove() {
+  document.getElementById("confirm-remove-modal").classList.add("hidden");
+  pendingRemoveGroup = null; pendingRemovePageKey = null; pendingRemoveRerender = null;
+}
+document.getElementById("confirm-remove-section-btn").addEventListener("click", () => {
+  if (!pendingRemoveGroup) return;
+  saveHistory();
+  pendingRemoveGroup.entries.forEach(({c}) => setHidden(c, pendingRemovePageKey, true));
+  const rerender = pendingRemoveRerender;
+  closeConfirmRemove();
+  rerender();
+  scheduleSave();
+});
+document.getElementById("confirm-remove-all-btn").addEventListener("click", () => {
+  if (!pendingRemoveGroup) return;
+  if (!confirm(`Remover "${pendingRemoveGroup.clienteName}" de TODOS os designers e páginas? Essa ação não pode ser desfeita facilmente.`)) return;
+  saveHistory();
+  pendingRemoveGroup.entries.forEach(({c, designer}) => { state[designer] = (state[designer]||[]).filter(x => x !== c); });
+  closeConfirmRemove();
+  renderAll();
+  scheduleSave();
+});
+
+// ============ CARD MESCLADO (Atendimento / Serviço / Clientes) ============
+// editable=false: leitura (Atendimento, Serviço) — mostra designer, serviços, criativos, sem tempo.
+// editable=true: edição completa (página Clientes) — nome, atendimento, e por-designer serviços/criativos/tempo.
+function buildMergedCard(group, pageKey, editable) {
+  const card = document.createElement("div");
+  card.className = "client-card";
+  card.draggable = false;
+  card.style.cursor = "default";
+
+  const clientCol = COLOR_PALETTE[Math.abs(hashStr(group.clienteName)) % COLOR_PALETTE.length];
+  const topRow = document.createElement("div");
+  topRow.className = "client-top-row";
+
+  const icon = document.createElement("div");
+  icon.className = "client-icon";
+  icon.style.background = clientCol.bg; icon.style.color = clientCol.fg;
+  icon.textContent = initials(group.clienteName);
+  topRow.appendChild(icon);
+
+  const nameWrap = document.createElement("div");
+  nameWrap.className = "client-name-wrap";
+  if (editable) {
+    const nameInput = document.createElement("input");
+    nameInput.className = "client-name-input";
+    nameInput.value = group.clienteName;
+    nameInput.addEventListener("click", e => e.stopPropagation());
+    nameInput.addEventListener("blur", () => {
+      const v = nameInput.value.trim();
+      if (v && v !== group.clienteName) { saveHistory(); group.entries.forEach(({c}) => c.cliente = v); scheduleSave(); renderAll(); }
+      else nameInput.value = group.clienteName;
+    });
+    nameInput.addEventListener("keydown", e => { if (e.key==="Enter") nameInput.blur(); });
+    nameWrap.appendChild(nameInput);
+  } else {
+    const nameDiv = document.createElement("div");
+    nameDiv.style.cssText = "font-size:12px;font-weight:600;";
+    nameDiv.textContent = group.clienteName;
+    nameWrap.appendChild(nameDiv);
+  }
+  topRow.appendChild(nameWrap);
+
+  const removeBtn = document.createElement("button");
+  removeBtn.className = "mini-icon-btn danger";
+  removeBtn.title = "Remover cliente";
+  removeBtn.style.opacity = "1";
+  removeBtn.innerHTML = `<i class="ti ti-trash"></i>`;
+  removeBtn.addEventListener("click", e => {
+    e.stopPropagation();
+    const rerender = pageKey === "atendimento" ? renderAtendimento : pageKey === "servico" ? renderServico : renderClientesPage;
+    openRemoveChoice(group, pageKey, rerender);
+  });
+  topRow.appendChild(removeBtn);
+  card.appendChild(topRow);
+
+  // Atendimento (comum a todas as cópias)
+  const atendWrap = document.createElement("div");
+  atendWrap.style.cssText = "margin-top:8px;margin-left:38px;";
+  const firstAtend = group.entries[0].c.atend || "Sem atendimento";
+  if (editable) {
+    const atendEl = document.createElement("span");
+    atendEl.className = "client-atend";
+    atendEl.style.marginTop = "0"; atendEl.style.marginLeft = "0";
+    atendEl.textContent = firstAtend;
+    atendEl.title = "Clique para alterar o atendimento";
+    atendEl.addEventListener("click", e => {
+      e.stopPropagation();
+      const inp = document.createElement("input");
+      inp.className = "client-atend-input";
+      inp.style.marginTop = "0"; inp.style.marginLeft = "0";
+      inp.value = firstAtend;
+      atendEl.replaceWith(inp);
+      inp.focus(); inp.select();
+      const commit = () => {
+        const v = inp.value.trim() || firstAtend;
+        if (v !== firstAtend) { saveHistory(); group.entries.forEach(({c}) => c.atend = v); scheduleSave(); }
+        renderAll();
+      };
+      inp.addEventListener("blur", commit);
+      inp.addEventListener("keydown", e2 => { if (e2.key==="Enter") inp.blur(); e2.stopPropagation(); });
+    });
+    atendWrap.appendChild(atendEl);
+  } else {
+    atendWrap.innerHTML = `<span style="font-size:9.5px;color:#78766e;background:#F3F3F1;padding:2px 8px;border-radius:8px;">${firstAtend}</span>`;
+  }
+  card.appendChild(atendWrap);
+
+  // Uma sub-linha por designer/cópia
+  group.entries.forEach(({c, designer}) => {
+    const col = getColor(designer);
+    const row = document.createElement("div");
+    row.style.cssText = "margin-top:8px;margin-left:38px;padding:8px;background:#FAF9F7;border-radius:10px;";
+
+    const head = document.createElement("div");
+    head.style.cssText = "display:flex;align-items:center;gap:6px;flex-wrap:wrap;";
+    head.innerHTML = `<span style="font-size:9.5px;font-weight:700;background:${col.bg};color:${col.fg};padding:2px 8px;border-radius:8px;"><i class="ti ti-palette" style="font-size:9px;"></i> ${designer}</span>`;
+    row.appendChild(head);
+
+    const tagsRow = document.createElement("div");
+    tagsRow.className = "client-tags-row";
+    tagsRow.style.marginLeft = "0";
+    (c.servicos||[]).forEach(label => {
+      const st = getServicoStyle(label);
+      const tag = document.createElement("span");
+      tag.className = "tag";
+      tag.style.background = st.bg; tag.style.color = st.color;
+      if (editable) {
+        tag.innerHTML = `${label}<span class="tag-x">×</span>`;
+        tag.querySelector(".tag-x").addEventListener("click", e => {
+          e.stopPropagation(); saveHistory();
+          c.servicos = c.servicos.filter(s => s !== label);
+          renderAll(); scheduleSave();
+        });
+      } else {
+        tag.textContent = label;
+      }
+      tagsRow.appendChild(tag);
+    });
+    if (editable) {
+      const addTagBtn = document.createElement("button");
+      addTagBtn.className = "add-tag-btn";
+      addTagBtn.textContent = "+ serviço";
+      addTagBtn.addEventListener("click", e => {
+        e.stopPropagation();
+        const label = prompt("Serviço (ex: Estático, Vídeo, Animação, E-mail, Story, Reels, Banner, Tráfego, ou personalizado):");
+        if (!label) return;
+        const v = label.trim();
+        if (!v || (c.servicos||[]).includes(v)) return;
+        saveHistory();
+        if (!c.servicos) c.servicos = [];
+        c.servicos.push(v);
+        renderAll(); scheduleSave();
+      });
+      tagsRow.appendChild(addTagBtn);
+    }
+    row.appendChild(tagsRow);
+
+    const statsRow = document.createElement("div");
+    statsRow.style.cssText = "display:flex;align-items:center;gap:12px;margin-top:8px;";
+    if (editable) {
+      const criWrap = document.createElement("div");
+      criWrap.style.cssText = "display:flex;align-items:center;gap:4px;";
+      criWrap.innerHTML = `<span class="ctrl-label"><i class="ti ti-stack" style="font-size:10px;"></i></span>`;
+      const criMinus = document.createElement("button"); criMinus.className = "ctrl-btn"; criMinus.textContent = "−";
+      const criVal = document.createElement("span"); criVal.className = "ctrl-val"; criVal.textContent = c.criativos || 0;
+      const criPlus = document.createElement("button"); criPlus.className = "ctrl-btn"; criPlus.textContent = "+";
+      criMinus.addEventListener("click", e => { e.stopPropagation(); if ((c.criativos||0)<=0) return; saveHistory(); c.criativos--; criVal.textContent=c.criativos; renderKPIs(); updateDesignerStats(designer); renderCharts(); scheduleSave(); });
+      criPlus.addEventListener("click", e => { e.stopPropagation(); saveHistory(); c.criativos=(c.criativos||0)+1; criVal.textContent=c.criativos; renderKPIs(); updateDesignerStats(designer); renderCharts(); scheduleSave(); });
+      criWrap.append(criMinus, criVal, criPlus);
+      statsRow.appendChild(criWrap);
+
+      const tWrap = document.createElement("div");
+      tWrap.style.cssText = "display:flex;align-items:center;gap:4px;";
+      tWrap.innerHTML = `<span class="ctrl-label"><i class="ti ti-clock" style="font-size:10px;"></i></span>`;
+      const tMinus = document.createElement("button"); tMinus.className = "ctrl-btn"; tMinus.textContent = "−";
+      const tVal = document.createElement("span"); tVal.className = "ctrl-val"; tVal.textContent = formatTempo(c.tempo||0);
+      const tPlus = document.createElement("button"); tPlus.className = "ctrl-btn"; tPlus.textContent = "+";
+      tMinus.addEventListener("click", e => { e.stopPropagation(); if ((c.tempo||0)<5) return; saveHistory(); c.tempo-=5; tVal.textContent=formatTempo(c.tempo); updateDesignerStats(designer); renderKPIs(); renderCharts(); scheduleSave(); });
+      tPlus.addEventListener("click", e => { e.stopPropagation(); saveHistory(); c.tempo=(c.tempo||0)+5; tVal.textContent=formatTempo(c.tempo); updateDesignerStats(designer); renderKPIs(); renderCharts(); scheduleSave(); });
+      tWrap.append(tMinus, tVal, tPlus);
+      statsRow.appendChild(tWrap);
+    } else {
+      statsRow.innerHTML = `<span style="font-size:9.5px;color:#78766e;"><i class="ti ti-stack" style="font-size:10px;"></i> ${c.criativos||0} criativos</span>`;
+    }
+    row.appendChild(statsRow);
+
+    card.appendChild(row);
+  });
+
+  return card;
+}
+
+// ============ PÁGINA: ATENDIMENTO (mesclada, sempre A-Z, só leitura) ============
+
 function renderAtendimento() {
   const grid = document.getElementById("atendimento-grid");
   grid.innerHTML = "";
-  const flat = getAllClientsFlat();
+  const flat = getAllClientsFlat().filter(({c}) => !isHiddenOn(c, "atendimento"));
   const byAtend = {};
   flat.forEach(({c, designer}) => {
     const a = c.atend || "Sem atendimento";
@@ -923,7 +1167,8 @@ function renderAtendimento() {
   const names = Object.keys(byAtend).sort((a,b) => a.localeCompare(b));
 
   names.forEach(atend => {
-    const items = byAtend[atend];
+    const merged = mergeEntriesByClient(byAtend[atend]);
+    const totalCriat = byAtend[atend].reduce((s,i)=>s+(i.c.criativos||0),0);
     const col = COLOR_PALETTE[Math.abs(hashStr(atend)) % COLOR_PALETTE.length];
     const card = document.createElement("div");
     card.className = "designer-card" + (expandedAtendSet.has(atend) ? " expanded" : "");
@@ -935,8 +1180,8 @@ function renderAtendimento() {
       <div style="font-size:13px;font-weight:600;margin-bottom:2px;">${atend}</div>
       <div class="dcard-top-spacer"></div>
       <div class="designer-stats-row">
-        <div class="dstat"><div class="dstat-num">${items.length}</div><div class="dstat-label">Clientes</div></div>
-        <div class="dstat"><div class="dstat-num">${items.reduce((s,i)=>s+(i.c.criativos||0),0)}</div><div class="dstat-label">Criativos</div></div>
+        <div class="dstat"><div class="dstat-num">${merged.length}</div><div class="dstat-label">Clientes</div></div>
+        <div class="dstat"><div class="dstat-num">${totalCriat}</div><div class="dstat-label">Criativos</div></div>
       </div>
     `;
     top.addEventListener("click", () => {
@@ -947,19 +1192,19 @@ function renderAtendimento() {
 
     const inner = document.createElement("div");
     inner.className = "clients-inner";
-    items.forEach(({c, designer}) => inner.appendChild(buildInfoCard(c, designer)));
+    merged.forEach(group => inner.appendChild(buildMergedCard(group, "atendimento", false)));
     card.appendChild(inner);
 
     grid.appendChild(card);
   });
 }
 
-// ============ PÁGINA: SERVIÇO ============
+// ============ PÁGINA: SERVIÇO (mesclada, sempre A-Z, só leitura) ============
 
 function renderServico() {
   const grid = document.getElementById("servico-grid");
   grid.innerHTML = "";
-  const flat = getAllClientsFlat();
+  const flat = getAllClientsFlat().filter(({c}) => !isHiddenOn(c, "servico"));
   const byServico = {};
   flat.forEach(({c, designer}) => {
     (c.servicos && c.servicos.length ? c.servicos : ["Sem serviço definido"]).forEach(s => {
@@ -970,7 +1215,8 @@ function renderServico() {
   const names = Object.keys(byServico).sort((a,b) => a.localeCompare(b));
 
   names.forEach(servico => {
-    const items = byServico[servico];
+    const merged = mergeEntriesByClient(byServico[servico]);
+    const totalCriat = byServico[servico].reduce((s,i)=>s+(i.c.criativos||0),0);
     const st = getServicoStyle(servico);
     const card = document.createElement("div");
     card.className = "designer-card" + (expandedServicoSet.has(servico) ? " expanded" : "");
@@ -982,8 +1228,8 @@ function renderServico() {
       <div style="font-size:13px;font-weight:600;margin-bottom:2px;">${servico}</div>
       <div class="dcard-top-spacer"></div>
       <div class="designer-stats-row">
-        <div class="dstat"><div class="dstat-num">${items.length}</div><div class="dstat-label">Clientes</div></div>
-        <div class="dstat"><div class="dstat-num">${items.reduce((s,i)=>s+(i.c.criativos||0),0)}</div><div class="dstat-label">Criativos</div></div>
+        <div class="dstat"><div class="dstat-num">${merged.length}</div><div class="dstat-label">Clientes</div></div>
+        <div class="dstat"><div class="dstat-num">${totalCriat}</div><div class="dstat-label">Criativos</div></div>
       </div>
     `;
     top.addEventListener("click", () => {
@@ -994,57 +1240,14 @@ function renderServico() {
 
     const inner = document.createElement("div");
     inner.className = "clients-inner";
-    items.forEach(({c, designer}) => inner.appendChild(buildInfoCard(c, designer)));
+    merged.forEach(group => inner.appendChild(buildMergedCard(group, "servico", false)));
     card.appendChild(inner);
 
     grid.appendChild(card);
   });
 }
 
-// Card de leitura (usado em Atendimento e Serviço) — mostra dados sem tempo, sem edição
-function buildInfoCard(c, designer) {
-  const card = document.createElement("div");
-  card.className = "client-card";
-  card.draggable = false;
-  card.style.cursor = "default";
-
-  const clientCol = COLOR_PALETTE[Math.abs(hashStr(c.cliente)) % COLOR_PALETTE.length];
-  const topRow = document.createElement("div");
-  topRow.className = "client-top-row";
-  topRow.innerHTML = `
-    <div class="client-icon" style="background:${clientCol.bg};color:${clientCol.fg};">${initials(c.cliente)}</div>
-    <div class="client-name-wrap"><div style="font-size:12px;font-weight:600;">${c.cliente}</div></div>
-  `;
-  card.appendChild(topRow);
-
-  const infoRow = document.createElement("div");
-  infoRow.style.cssText = "margin-top:8px;margin-left:38px;font-size:9.5px;color:#78766e;display:flex;gap:8px;flex-wrap:wrap;align-items:center;";
-  const col = getColor(designer);
-  infoRow.innerHTML = `
-    <span style="background:${col.bg};color:${col.fg};padding:2px 8px;border-radius:8px;font-weight:600;"><i class="ti ti-palette" style="font-size:9px;"></i> ${designer}</span>
-    <span style="background:#F3F3F1;padding:2px 8px;border-radius:8px;">${c.atend}</span>
-    <span><i class="ti ti-stack" style="font-size:10px;"></i> ${c.criativos||0} criativos</span>
-  `;
-  card.appendChild(infoRow);
-
-  if (c.servicos && c.servicos.length) {
-    const tagsRow = document.createElement("div");
-    tagsRow.className = "client-tags-row";
-    c.servicos.forEach(label => {
-      const st = getServicoStyle(label);
-      const tag = document.createElement("span");
-      tag.className = "tag";
-      tag.style.background = st.bg; tag.style.color = st.color;
-      tag.textContent = label;
-      tagsRow.appendChild(tag);
-    });
-    card.appendChild(tagsRow);
-  }
-
-  return card;
-}
-
-// ============ PÁGINA: TODOS OS CLIENTES ============
+// ============ PÁGINA: TODOS OS CLIENTES (mesclada, editável) ============
 
 function toggleSortClientesAZ() {
   sortClientesAZ = !sortClientesAZ;
@@ -1055,11 +1258,10 @@ function toggleSortClientesAZ() {
 function renderClientesPage() {
   const grid = document.getElementById("clientes-grid");
   grid.innerHTML = "";
-  let flat = getAllClientsFlat();
-  if (sortClientesAZ) flat.sort((a,b) => a.c.cliente.localeCompare(b.c.cliente));
-  flat.forEach(({c, designer}) => {
-    grid.appendChild(buildClientCard(c, designer, true));
-  });
+  const flat = getAllClientsFlat().filter(({c}) => !isHiddenOn(c, "clientes"));
+  let merged = mergeEntriesByClient(flat);
+  if (!sortClientesAZ) { /* mergeEntriesByClient já ordena A-Z por padrão */ }
+  merged.forEach(group => grid.appendChild(buildMergedCard(group, "clientes", true)));
 }
 
 // ============ MODAIS ============
