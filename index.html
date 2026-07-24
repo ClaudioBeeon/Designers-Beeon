@@ -215,8 +215,14 @@
     <span class="sync-status" id="sync-status"><i class="ti ti-cloud"></i> Carregando...</span>
     <div class="icon-btn" title="Desfazer" onclick="undo()"><i class="ti ti-arrow-back-up" id="undo-icon"></i></div>
     <div class="icon-btn" title="Exportar CSV" onclick="exportData()"><i class="ti ti-download"></i></div>
-    <div class="icon-btn" title="Novo cliente" onclick="openAddClientModal()"><i class="ti ti-user-plus"></i></div>
-    <div class="icon-btn" title="Novo designer" onclick="openAddDesignerModal()" style="background:#0000FB;"><i class="ti ti-plus" style="color:#fff;"></i></div>
+    <div style="position:relative;">
+  <div class="icon-btn" title="Adicionar" onclick="toggleAddMenu(event)" style="background:#0000FB;"><i class="ti ti-plus" style="color:#fff;"></i></div>
+  <div id="add-menu" style="display:none;position:absolute;top:44px;right:0;background:#fff;border-radius:12px;box-shadow:0 8px 24px rgba(20,20,18,0.16);padding:6px;width:190px;z-index:50;">
+    <button onclick="closeAddMenu();openAddDesignerModal()" style="display:flex;align-items:center;gap:8px;padding:8px 10px;border:none;background:none;border-radius:8px;cursor:pointer;font-size:12.5px;font-weight:500;color:#1a1a18;text-align:left;width:100%;" onmouseover="this.style.background='#F3F3F1'" onmouseout="this.style.background='none'"><i class="ti ti-layout-columns" style="font-size:15px;color:#0000FB;"></i>Adicionar designer</button>
+    <button onclick="closeAddMenu();openAddAtendModal()" style="display:flex;align-items:center;gap:8px;padding:8px 10px;border:none;background:none;border-radius:8px;cursor:pointer;font-size:12.5px;font-weight:500;color:#1a1a18;text-align:left;width:100%;" onmouseover="this.style.background='#F3F3F1'" onmouseout="this.style.background='none'"><i class="ti ti-headset" style="font-size:15px;color:#0000FB;"></i>Adicionar atendimento</button>
+    <button onclick="closeAddMenu();openAddClientModal()" style="display:flex;align-items:center;gap:8px;padding:8px 10px;border:none;background:none;border-radius:8px;cursor:pointer;font-size:12.5px;font-weight:500;color:#1a1a18;text-align:left;width:100%;" onmouseover="this.style.background='#F3F3F1'" onmouseout="this.style.background='none'"><i class="ti ti-user-plus" style="font-size:15px;color:#0000FB;"></i>Adicionar cliente</button>
+  </div>
+</div>
   </div>
 </div>
 
@@ -736,12 +742,18 @@ function buildClientCard(c, designer, showDesignerBadge) {
     dBadge.innerHTML = `<i class="ti ti-palette" style="font-size:9px;"></i> ${designer}`;
     card.appendChild(dBadge);
   }
-
-  const atendEl = document.createElement("span");
-  atendEl.className = "client-atend";
-  atendEl.textContent = c.atend;
-  atendEl.title = "Clique para alterar o atendimento";
-  atendEl.addEventListener("click", e => {
+ const atendPhotoUrl = (typeof ATENDIMENTO_PHOTOS !== "undefined" && ATENDIMENTO_PHOTOS[c.atend]) || null;
+if (atendPhotoUrl) {
+  const atendAvatar = document.createElement("img");
+  atendAvatar.src = atendPhotoUrl;
+  atendAvatar.style.cssText = "width:20px;height:20px;border-radius:50%;object-fit:cover;vertical-align:-5px;margin-right:5px;margin-left:38px;";
+  card.appendChild(atendAvatar);
+}
+const atendEl = document.createElement("span");
+atendEl.className = "client-atend";
+if (atendPhotoUrl) atendEl.style.marginLeft = "0";
+atendEl.textContent = c.atend;
+atendEl.title = "Clique para alterar o atendimento";
     e.stopPropagation();
     const inp = document.createElement("input");
     inp.className = "client-atend-input";
@@ -1336,6 +1348,18 @@ function openAddDesignerModal() {
   document.getElementById("new-designer-nome").focus();
 }
 function closeAddDesignerModal() { document.getElementById("add-designer-modal").classList.add("hidden"); }
+function toggleAddMenu(e) {
+  e.stopPropagation();
+  document.getElementById("add-menu").style.display = document.getElementById("add-menu").style.display === "block" ? "none" : "block";
+}
+function closeAddMenu() { document.getElementById("add-menu").style.display = "none"; }
+document.addEventListener("click", () => closeAddMenu());
+
+function openAddAtendModal() {
+  const nome = prompt("Nome da pessoa de atendimento:");
+  if (!nome || !nome.trim()) return;
+  alert("Atendimento \"" + nome.trim() + "\" será usado assim que você adicionar/editar um cliente com esse nome no campo Atendimento.");
+}
 function submitAddDesigner() {
   const nome = document.getElementById("new-designer-nome").value.trim();
   if (!nome) { alert("Digite o nome do designer."); return; }
