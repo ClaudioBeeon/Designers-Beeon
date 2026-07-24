@@ -156,7 +156,6 @@ function renderAll() {
   renderKPIs();
   renderDesigners();
   renderCharts();
-  renderActivity();
   if (currentPage === "atendimento") renderAtendimento();
   if (currentPage === "servico") renderServico();
   if (currentPage === "clientes") renderClientesPage();
@@ -1183,7 +1182,7 @@ async function pollForUpdates() {
 // ============ ATIVIDADES DO DRIVE ============
 
 async function loadDriveActivity() {
-  const el = document.getElementById("drive-activity-list");
+  const el = document.getElementById("activity-list");
   if (!el) return;
   try {
     const res = await fetch(WEBAPP_URL + "?tipo=atividades", { method: "GET" });
@@ -1208,16 +1207,40 @@ function formatQuando(ts) {
   return diffD + "d atrás";
 }
 
+// Agrupa arquivos da mesma pessoa, no mesmo cliente e na mesma pasta de publicação,
+// contando quantos arquivos foram enviados e usando o horário do mais recente.
+function agruparAtividades(atividades) {
+  const grupos = new Map();
+  atividades.forEach(a => {
+    const chave = a.quem + "|" + a.cliente + "|" + a.pasta;
+    if (!grupos.has(chave)) {
+      grupos.set(chave, { quem: a.quem, cliente: a.cliente, link: a.link, quando: a.quando, count: 0 });
+    }
+    const g = grupos.get(chave);
+    g.count++;
+    if (a.quando > g.quando) g.quando = a.quando;
+  });
+  return [...grupos.values()].sort((a, b) => b.quando - a.quando);
+}
+
 function renderDriveActivity(atividades) {
-  const el = document.getElementById("drive-activity-list");
-  if (!atividades.length) {
+  const el = document.getElementById("activity-list");
+  const grupos = agruparAtividades(atividades);
+  if (!grupos.length) {
     el.innerHTML = `<div style="font-size:11px;color:#a3a091;">Nenhum upload recente encontrado.</div>`;
     return;
   }
-  el.innerHTML = atividades.map(a => `
-    <div class="activity-item">
-      <div class="act-dot" style="background:#0000FB;"></div>
-      <div class="act-text"><strong>${a.quem}</strong> subiu "${a.arquivo}" em ${a.cliente} <span style="color:#a3a091;">· ${formatQuando(a.quando)}</span></div>
-    </div>
-  `).join("");
+  el.innerHTML = grupos.map(g => {
+    const plural = g.count > 1 ? `${g.count} arquivos` : "1 arquivo";
+    return `
+      <div class="activity-item">
+        <div class="act-dot" style="background:#0000FB;"></div>
+        <div class="act-text">
+          <strong>${g.quem}</strong> subiu ${plural} em ${g.cliente}
+          <a href="${g.link}" target="_blank" rel="noopener" style="margin-left:4px;color:#0000FB;text-decoration:none;">ver</a>
+          <span style="color:#a3a091;"> · ${formatQuando(g.quando)}</span>
+        </div>
+      </div>
+    `;
+  }).join("");
 }
