@@ -200,7 +200,12 @@ function renderKPIs() {
       <div class="kpi-value">${formatTempo(totalMin)}</div>
       <div class="kpi-sub">${designers.filter(d=>d!=="Sem designer" && (state[d]||[]).length).length} designers ativos</div>
     </div>
+    <div class="kpi-card clicavel" onclick="abrirTarefasModalGeral('esforco')">
+      <div class="kpi-label">Esforço de hoje</div>
+      <div class="kpi-esforco-designers" id="kpi-esforco-designers"></div>
+    </div>
   `;
+  renderEsforcoNoKpi();
 }
 
 function renderDesigners() {
@@ -600,27 +605,33 @@ function renderRunrunKPIs() {
       (tarefasDetalhePorDesigner[nome][cat] || []).forEach(t => { if (t.urgente) totalPrioridades++; });
     });
   });
+  const totalMes = tarefasMesEAtrasadasDoTime().length;
 
   const elAtrasadas = document.getElementById("kpi-runrun-atrasadas");
   const elHoje = document.getElementById("kpi-runrun-hoje");
   const elPrioridades = document.getElementById("kpi-runrun-prioridades");
-  const elEsforco = document.getElementById("kpi-runrun-esforco");
+  const elMes = document.getElementById("kpi-runrun-mes");
   if (!elAtrasadas) return; // ainda não carregou os dados do Runrun.it
 
   elAtrasadas.textContent = totalAtrasadas;
   elHoje.textContent = totalHoje;
   elPrioridades.textContent = totalPrioridades;
+  elMes.textContent = totalMes;
 
-  elEsforco.innerHTML = Object.keys(esforcoHojePorDesigner).map(nome => {
-    const col = getColor(nome);
-    const min = esforcoHojePorDesigner[nome] || 0;
-    return `
-      <div class="runrun-kpi-esforco-item">
-        <div class="runrun-kpi-esforco-avatar" style="background:${col.bg};color:${col.fg};">${initials(nome)}</div>
-        <div class="runrun-kpi-esforco-tempo">${formatTempo(min)}</div>
-      </div>
-    `;
-  }).join("");
+  renderEsforcoNoKpi();
+}
+
+function renderEsforcoNoKpi() {
+  const el = document.getElementById("kpi-esforco-designers");
+  if (!el) return;
+  const nomes = Object.keys(esforcoHojePorDesigner);
+  if (!nomes.length) { el.innerHTML = `<div style="font-size:11px;color:#a3a091;">Carregando...</div>`; return; }
+  el.innerHTML = nomes.map(nome => `
+    <div class="kpi-esforco-designer-linha">
+      <span class="nome">${nome}</span>
+      <span class="tempo">${formatTempo(esforcoHojePorDesigner[nome] || 0)}</span>
+    </div>
+  `).join("");
 }
 
 function renderActivity() {
@@ -1554,6 +1565,9 @@ async function pollForUpdates() {
 // ============ ATIVIDADES POR DIA (RUNRUN.IT) ============
 
 async function loadRunrunAtividades() {
+  const banner = document.getElementById("runrun-loading-banner");
+  if (banner) banner.classList.remove("hidden");
+
   try {
     const res = await fetch(WEBAPP_URL + "?tipo=atividadesPorDia", { method: "GET" });
     const json = await res.json();
@@ -1577,6 +1591,8 @@ async function loadRunrunAtividades() {
     renderAll();
   } catch (err) {
     console.error("Falha ao carregar tarefas abertas do Runrun.it:", err);
+  } finally {
+    if (banner) banner.classList.add("hidden");
   }
 }
 
