@@ -194,6 +194,13 @@
   </div>
 </div>
 
+<div class="client-detail-overlay hidden" id="tarefas-modal-overlay" onclick="if(event.target===this) closeTarefasModal()">
+  <div class="client-detail-box tarefas-modal-box">
+    <button class="client-detail-close" onclick="closeTarefasModal()"><i class="ti ti-x"></i></button>
+    <div id="tarefas-modal-content"></div>
+  </div>
+</div>
+
 <script src="script.js"></script>
 </body>
 </html>
