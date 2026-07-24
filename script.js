@@ -1176,4 +1176,48 @@ async function pollForUpdates() {
   await loadFromSheet();
   renderAll();
   setInterval(pollForUpdates, 6000);
+  loadDriveActivity();
+  setInterval(loadDriveActivity, 120000);
 })();
+
+// ============ ATIVIDADES DO DRIVE ============
+
+async function loadDriveActivity() {
+  const el = document.getElementById("drive-activity-list");
+  if (!el) return;
+  try {
+    const res = await fetch(WEBAPP_URL + "?tipo=atividades", { method: "GET" });
+    const json = await res.json();
+    if (!json.ok) {
+      el.innerHTML = `<div style="font-size:11px;color:#a3a091;">${json.error || "Não foi possível carregar as atividades do Drive."}</div>`;
+      return;
+    }
+    renderDriveActivity(json.atividades || []);
+  } catch (err) {
+    console.error("Falha ao carregar atividades do Drive:", err);
+  }
+}
+
+function formatQuando(ts) {
+  const diffMin = Math.round((Date.now() - ts) / 60000);
+  if (diffMin < 1) return "agora mesmo";
+  if (diffMin < 60) return diffMin + " min atrás";
+  const diffH = Math.round(diffMin / 60);
+  if (diffH < 24) return diffH + "h atrás";
+  const diffD = Math.round(diffH / 24);
+  return diffD + "d atrás";
+}
+
+function renderDriveActivity(atividades) {
+  const el = document.getElementById("drive-activity-list");
+  if (!atividades.length) {
+    el.innerHTML = `<div style="font-size:11px;color:#a3a091;">Nenhum upload recente encontrado.</div>`;
+    return;
+  }
+  el.innerHTML = atividades.map(a => `
+    <div class="activity-item">
+      <div class="act-dot" style="background:#0000FB;"></div>
+      <div class="act-text"><strong>${a.quem}</strong> subiu "${a.arquivo}" em ${a.cliente} <span style="color:#a3a091;">· ${formatQuando(a.quando)}</span></div>
+    </div>
+  `).join("");
+}
