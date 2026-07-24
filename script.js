@@ -627,9 +627,9 @@ function renderEsforcoNoKpi() {
   const nomes = Object.keys(esforcoHojePorDesigner);
   if (!nomes.length) { el.innerHTML = `<div style="font-size:11px;color:#a3a091;">Carregando...</div>`; return; }
   el.innerHTML = nomes.map(nome => `
-    <div class="kpi-esforco-designer-linha">
-      <span class="nome">${nome}</span>
-      <span class="tempo">${formatTempo(esforcoHojePorDesigner[nome] || 0)}</span>
+    <div class="kpi-esforco-designer-col">
+      <div class="kpi-esforco-designer-valor">${formatTempo(esforcoHojePorDesigner[nome] || 0)}</div>
+      <div class="kpi-esforco-designer-nome">${nome}</div>
     </div>
   `).join("");
 }
@@ -1334,12 +1334,18 @@ function renderTarefasModalGeral(content) {
       <div class="esforco-modal-tira">
         ${nomes.map(nome => {
           const col = getColor(nome);
+          const foto = designerPhotos[nome];
+          const avatarHtml = foto
+            ? `<img src="${foto}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`
+            : initials(nome);
           const selecionado = esforcoModalFiltroDesigner === nome ? " selecionado" : "";
+          const qtdTarefas = (esforcoHojeTarefas[nome] || []).length;
           return `
             <div class="esforco-modal-tira-item${selecionado}" onclick="selecionarDesignerEsforco('${nome}')">
-              <div class="esforco-modal-tira-avatar" style="background:${col.bg};color:${col.fg};">${initials(nome)}</div>
+              <div class="esforco-modal-tira-avatar" style="background:${col.bg};color:${col.fg};">${avatarHtml}</div>
               <div class="esforco-modal-tira-nome">${nome}</div>
               <div class="esforco-modal-tira-tempo">${formatTempo(esforcoHojePorDesigner[nome] || 0)}</div>
+              <div class="esforco-modal-tira-qtd">${qtdTarefas} tarefa${qtdTarefas === 1 ? "" : "s"}</div>
             </div>
           `;
         }).join("")}
