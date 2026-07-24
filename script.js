@@ -54,6 +54,10 @@ let sortAZ = false;
 let expandedSet = new Set(["Paulo"]);
 let atividadesHojePorDesigner = {}; // preenchido pela integração com o Runrun.it
 let tarefasAbertasPorDesigner = {}; // atrasadas/hoje/futuras, preenchido pela integração com o Runrun.it
+let tarefasDetalhePorDesigner = {}; // lista de tarefas de cada categoria, pro modal
+let tarefasPorCliente = {}; // contagem de tarefas em aberto por cliente
+let tarefasModalDesigner = null;
+let tarefasModalCategoria = "atrasadas";
 let currentPage = "designers";
 let designerHomeOffice = {};
 let sortClientesAZ = false;
@@ -227,9 +231,9 @@ function renderDesigners() {
     const dadosRunrun = tarefasAbertasPorDesigner[designer];
     const runrunRowHtml = dadosRunrun ? `
       <div class="designer-stats-row runrun-stats-row">
-        <div class="dstat"><div class="dstat-num" style="color:#993556;">${dadosRunrun.atrasadas || 0}</div><div class="dstat-label">Atrasadas</div></div>
-        <div class="dstat"><div class="dstat-num" style="color:#854F0B;">${dadosRunrun.hoje || 0}</div><div class="dstat-label">Vence hoje</div></div>
-        <div class="dstat"><div class="dstat-num" style="color:#3B6D11;">${dadosRunrun.futuras || 0}</div><div class="dstat-label">Futuras</div></div>
+        <div class="dstat dstat-clicavel" onclick="event.stopPropagation();openTarefasModal('${designer}','atrasadas')"><div class="dstat-num" style="color:#993556;">${dadosRunrun.atrasadas || 0}</div><div class="dstat-label">Atrasadas</div></div>
+        <div class="dstat dstat-clicavel" onclick="event.stopPropagation();openTarefasModal('${designer}','hoje')"><div class="dstat-num" style="color:#854F0B;">${dadosRunrun.hoje || 0}</div><div class="dstat-label">Vence hoje</div></div>
+        <div class="dstat dstat-clicavel" onclick="event.stopPropagation();openTarefasModal('${designer}','futuras')"><div class="dstat-num" style="color:#3B6D11;">${dadosRunrun.futuras || 0}</div><div class="dstat-label">Futuras</div></div>
       </div>
     ` : "";
     top.innerHTML = `
@@ -423,6 +427,14 @@ function buildClientCard(c, designer, showDesignerBadge) {
   });
   atendWrap.appendChild(atendEl);
   card.appendChild(atendWrap);
+
+  const qtdTarefasRunrun = tarefasPorCliente[c.cliente];
+  if (qtdTarefasRunrun) {
+    const tarefasBadge = document.createElement("div");
+    tarefasBadge.className = "client-tarefas-badge";
+    tarefasBadge.innerHTML = `<i class="ti ti-list-check" style="font-size:10px;"></i> ${qtdTarefasRunrun} tarefa${qtdTarefasRunrun > 1 ? "s" : ""} no Runrun.it`;
+    card.appendChild(tarefasBadge);
+  }
 
   const tagsRow = document.createElement("div");
   tagsRow.className = "client-tags-row";
@@ -752,6 +764,14 @@ function buildMergedCard(group, pageKey, editable) {
   }
   card.appendChild(atendWrap);
 
+  const qtdTarefasRunrunMerged = tarefasPorCliente[group.clienteName];
+  if (qtdTarefasRunrunMerged) {
+    const tarefasBadgeMerged = document.createElement("div");
+    tarefasBadgeMerged.className = "client-tarefas-badge";
+    tarefasBadgeMerged.innerHTML = `<i class="ti ti-list-check" style="font-size:10px;"></i> ${qtdTarefasRunrunMerged} tarefa${qtdTarefasRunrunMerged > 1 ? "s" : ""} no Runrun.it`;
+    card.appendChild(tarefasBadgeMerged);
+  }
+
   group.entries.forEach(({c, designer}) => {
     const col = getColor(designer);
     const row = document.createElement("div");
@@ -1058,6 +1078,69 @@ function openClientDetail(clienteName) {
   document.getElementById("client-detail-overlay").classList.remove("hidden");
 }
 function closeClientDetail() { document.getElementById("client-detail-overlay").classList.add("hidden"); }
+
+// ============ MODAL DE TAREFAS (RUNRUN.IT) ============
+
+function openTarefasModal(designer, categoria) {
+  tarefasModalDesigner = designer;
+  tarefasModalCategoria = categoria;
+  renderTarefasModal();
+  document.getElementById("tarefas-modal-overlay").classList.remove("hidden");
+}
+function closeTarefasModal() { document.getElementById("tarefas-modal-overlay").classList.add("hidden"); }
+function trocarAbaTarefasModal(categoria) {
+  tarefasModalCategoria = categoria;
+  renderTarefasModal();
+}
+function formatDataTarefa(iso) {
+  const [ano, mes, dia] = iso.split("-");
+  return dia + "/" + mes;
+}
+function renderTarefasModal() {
+  const designer = tarefasModalDesigner;
+  const dados = tarefasDetalhePorDesigner[designer] || { atrasadas: [], hoje: [], futuras: [] };
+  const contagens = tarefasAbertasPorDesigner[designer] || { atrasadas: 0, hoje: 0, futuras: 0 };
+  const col = getColor(designer);
+  const fotoDesigner = designerPhotos[designer];
+  const avatarModalHtml = fotoDesigner
+    ? `<img src="${fotoDesigner}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`
+    : initials(designer);
+  const abas = [
+    { key: "atrasadas", label: "Atrasadas" },
+    { key: "hoje", label: "Vence hoje" },
+    { key: "futuras", label: "Futuras" }
+  ];
+  const lista = dados[tarefasModalCategoria] || [];
+
+  const content = document.getElementById("tarefas-modal-content");
+  content.innerHTML = `
+    <div class="tarefas-modal-header">
+      <div class="tarefas-modal-avatar" style="background:${col.bg};color:${col.fg};">${avatarModalHtml}</div>
+      <div>
+        <div class="tarefas-modal-title">${designer}</div>
+        <div class="tarefas-modal-subtitle">Tarefas em aberto no Runrun.it</div>
+      </div>
+    </div>
+    <div class="tarefas-tabs">
+      ${abas.map(a => `
+        <button class="tarefas-tab${a.key === tarefasModalCategoria ? " active" : ""}" onclick="trocarAbaTarefasModal('${a.key}')">
+          ${a.label} <span class="tarefas-tab-count">(${contagens[a.key] || 0})</span>
+        </button>
+      `).join("")}
+    </div>
+    <div id="tarefas-modal-lista">
+      ${lista.length ? lista.map(t => `
+        <div class="tarefas-lista-item">
+          <div class="tarefas-lista-item-info">
+            <div class="tarefas-lista-item-titulo">${t.titulo}</div>
+            <div class="tarefas-lista-item-meta">${t.cliente} · ${formatDataTarefa(t.data)}</div>
+          </div>
+          <a class="tarefas-lista-item-link" href="${t.link}" target="_blank" rel="noopener">Abrir <i class="ti ti-external-link" style="font-size:11px;"></i></a>
+        </div>
+      `).join("") : `<div class="tarefas-lista-vazio">Nenhuma tarefa nessa categoria.</div>`}
+    </div>
+  `;
+}
 function goToDesigner(d) {
   expandedSet.add(d);
   renderDesigners();
@@ -1211,7 +1294,9 @@ async function loadRunrunAtividades() {
     const json2 = await res2.json();
     if (!json2.ok) { console.error("Falha ao carregar tarefas abertas do Runrun.it:", json2.error); return; }
     tarefasAbertasPorDesigner = json2.porDesigner || {};
-    renderDesigners();
+    tarefasDetalhePorDesigner = json2.tarefas || {};
+    tarefasPorCliente = json2.porCliente || {};
+    renderAll();
   } catch (err) {
     console.error("Falha ao carregar tarefas abertas do Runrun.it:", err);
   }
