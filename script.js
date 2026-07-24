@@ -1140,13 +1140,18 @@ function diasEntreHoje(iso) {
   return Math.round((alvo - hoje) / 86400000);
 }
 function prazoInfo(categoria, data) {
-  if (categoria === "hoje") return { texto: "Vence hoje", bg: "#FAEEDA", cor: "#854F0B" };
+  if (categoria === "hoje") return { texto: "Vence hoje", bg: "#FDF1DC", cor: "#B8791B" };
   if (categoria === "atrasadas") {
     const d = Math.abs(diasEntreHoje(data));
-    return { texto: (d === 1 ? "1 dia atrasada" : d + " dias atrasada"), bg: "#FBEAF0", cor: "#993556" };
+    return { texto: (d === 1 ? "1 dia atrasada" : d + " dias atrasada"), bg: "#FCE9EE", cor: "#C0396B" };
   }
   const d = diasEntreHoje(data);
-  return { texto: (d === 1 ? "em 1 dia" : "em " + d + " dias"), bg: "#EAF3DE", cor: "#3B6D11" };
+  return { texto: (d === 1 ? "em 1 dia" : "em " + d + " dias"), bg: "#EEF6E7", cor: "#5A9A34" };
+}
+function formatDataPorExtenso(iso) {
+  const meses = ["jan","fev","mar","abr","mai","jun","jul","ago","set","out","nov","dez"];
+  const [ano, mes, dia] = iso.split("-");
+  return parseInt(dia, 10) + " " + meses[parseInt(mes, 10) - 1];
 }
 
 // Junta as tarefas de todos os designers que pertencem a um cliente do Runrun.it,
@@ -1167,14 +1172,23 @@ function tarefasDoClienteRunrun(clienteRunrun) {
 
 function renderTarefaRow(t, categoria, mostrarSubtitulo) {
   const prazo = prazoInfo(categoria, t.data);
-  const subtitulo = mostrarSubtitulo === "designer" ? t.designer : t.cliente;
+  let badgeEntidadeHtml = "";
+  if (mostrarSubtitulo === "designer") {
+    const col = getColor(t.designer);
+    badgeEntidadeHtml = `<span class="tarefas-badge" style="background:${col.bg};color:${col.fg};">${t.designer}</span>`;
+  } else if (t.cliente) {
+    const clienteCol = COLOR_PALETTE[Math.abs(hashStr(t.cliente)) % COLOR_PALETTE.length];
+    badgeEntidadeHtml = `<span class="tarefas-badge" style="background:${clienteCol.bg};color:${clienteCol.fg};">${t.cliente}</span>`;
+  }
+  const badgeStatusHtml = t.status ? `<span class="tarefas-badge tarefas-badge-status">${t.status}</span>` : "";
   return `
     <div class="tarefas-lista-item">
       <div class="tarefas-lista-item-info">
         <div class="tarefas-lista-item-titulo">${t.urgente ? '<i class="ti ti-flag-filled" style="color:#C0392B;font-size:11px;"></i> ' : ""}${t.titulo}</div>
-        <div class="tarefas-lista-item-meta">${subtitulo}${t.status ? " · " + t.status : ""}</div>
+        <div class="tarefas-lista-item-badges">${badgeEntidadeHtml}${badgeStatusHtml}</div>
       </div>
       <div class="tarefas-lista-item-right">
+        <span class="tarefas-data-texto">${formatDataPorExtenso(t.data)}</span>
         <span class="tarefas-prazo-pill" style="background:${prazo.bg};color:${prazo.cor};">${prazo.texto}</span>
         <a class="tarefas-lista-item-link" href="${t.link}" target="_blank" rel="noopener" title="Abrir no Runrun.it"><i class="ti ti-external-link"></i></a>
       </div>
