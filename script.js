@@ -242,7 +242,6 @@ function renderDesigners() {
         <div class="dstat"><div class="dstat-num">${clients.length}</div><div class="dstat-label">Clientes</div></div>
         <div class="dstat"><div class="dstat-num">${totalCriativos(designer)}</div><div class="dstat-label">Criativos</div></div>
         <div class="dstat"><div class="dstat-num">${formatTempo(totalTempoMin(designer))}</div><div class="dstat-label">Tempo</div></div>
-        <div class="dstat"><div class="dstat-num">${atividadesHojePorDesigner[designer] || 0}</div><div class="dstat-label">Entregues</div></div>
       </div>
       ${runrunRowHtml}
     `;
