@@ -180,7 +180,7 @@
   .search-overlay.hidden { display: none; }
   .client-detail-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.45); display: flex; align-items: center; justify-content: center; z-index: 1100; }
   .client-detail-overlay.hidden { display: none; }
-  .client-detail-box { background: #F3F3F1; border-radius: 20px; width: 94vw; height: 92vh; max-width: 1100px; overflow-y: auto; padding: 24px; position: relative; }
+  .client-detail-box { background: #fff; border-radius: 20px; width: 94vw; height: 92vh; max-width: 1100px; overflow-y: auto; padding: 24px; position: relative; }
   .client-detail-close { position: absolute; top: 18px; right: 18px; width: 36px; height: 36px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(20,20,18,0.1); border: none; cursor: pointer; font-size: 16px; }
   .tarefas-modal-box { max-width: 720px; }
   .tarefas-modal-header { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
@@ -191,7 +191,7 @@
   .tarefas-tab { flex: 1; border: none; background: none; padding: 10px 12px; border-radius: 10px; font-size: 12.5px; font-weight: 600; cursor: pointer; color: #78766e; transition: background .15s, color .15s; }
   .tarefas-tab.active { background: #fff; color: #1a1a18; box-shadow: 0 1px 3px rgba(20,20,18,0.1); }
   .tarefas-tab .tarefas-tab-count { font-weight: 700; }
-  .tarefas-lista-item { background: #fff; border-radius: 14px; padding: 14px 16px; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; gap: 12px; box-shadow: 0 2px 8px rgba(20,20,18,0.06); }
+  .tarefas-lista-item { background: #fff; border-radius: 14px; padding: 14px 16px; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; gap: 12px; box-shadow: 0 3px 10px rgba(20,20,18,0.09); border: 1px solid #f1efe8; }
   .tarefas-lista-item-info { min-width: 0; }
   .tarefas-lista-item-titulo { font-size: 13px; font-weight: 600; margin-bottom: 7px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: flex; align-items: center; gap: 5px; }
   .tarefas-lista-item-badges { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
@@ -203,6 +203,16 @@
   .tarefas-lista-item-link { flex-shrink: 0; width: 28px; height: 28px; border-radius: 50%; background: #F3F3F1; display: flex; align-items: center; justify-content: center; color: #55534c; text-decoration: none; font-size: 13px; }
   .tarefas-lista-item-link:hover { background: #E6F1FB; color: #0000FB; }
   .tarefas-lista-vazio { font-size: 12px; color: #a3a091; text-align: center; padding: 30px 0; }
+  .cliente-info-grid { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
+  .cliente-info-card { background: #FAF9F7; border-radius: 14px; padding: 14px 16px; box-shadow: 0 2px 8px rgba(20,20,18,0.05); }
+  .cliente-info-pessoa { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+  .cliente-info-avatar { width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; flex-shrink: 0; }
+  .cliente-info-pessoa-label { font-size: 9.5px; color: #a3a091; }
+  .cliente-info-pessoa-nome { font-size: 12.5px; font-weight: 600; }
+  .cliente-info-stats { display: flex; gap: 20px; margin-bottom: 8px; }
+  .cliente-info-stat-num { font-size: 15px; font-weight: 700; }
+  .cliente-info-stat-label { font-size: 9.5px; color: #a3a091; margin-top: 1px; }
+  .cliente-info-tags { display: flex; flex-wrap: wrap; gap: 6px; }
   .dstat-clicavel { cursor: pointer; border-radius: 10px; transition: background .15s; padding: 4px 6px; margin: -4px -6px; }
   .dstat-clicavel:hover { background: rgba(0,0,0,0.05); }
   .client-tarefas-badge { font-size: 9.5px; font-weight: 600; color: #185FA5; background: #E6F1FB; padding: 2px 8px; border-radius: 8px; display: inline-flex; align-items: center; gap: 4px; margin-top: 8px; margin-left: 38px; }
