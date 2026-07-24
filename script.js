@@ -56,10 +56,12 @@ let atividadesHojePorDesigner = {}; // preenchido pela integração com o Runrun
 let tarefasAbertasPorDesigner = {}; // atrasadas/hoje/futuras, preenchido pela integração com o Runrun.it
 let tarefasDetalhePorDesigner = {}; // lista de tarefas de cada categoria, pro modal
 let tarefasPorCliente = {}; // contagem de tarefas em aberto por cliente
-let tarefasModalTipo = "designer"; // "designer" ou "cliente"
+let tarefasModalTipo = "designer"; // "designer", "cliente" ou "geral"
 let tarefasModalChave = null;
 let tarefasModalChaveRunrun = null; // nome exato do cliente no Runrun.it, quando tipo === "cliente"
 let tarefasModalCategoria = "atrasadas";
+let esforcoHojePorDesigner = {}; // minutos estimados no dia, por designer (baseado no Gantt do Runrun.it)
+let esforcoHojeTarefas = {}; // lista de tarefas que compõem esse esforço, por designer
 let currentPage = "designers";
 let designerHomeOffice = {};
 let sortClientesAZ = false;
@@ -586,18 +588,43 @@ function removeDesigner(designer) {
 }
 
 function renderCharts() {
-  const maxCriat = Math.max(1, ...designers.map(totalCriativos));
-  const maxMin = Math.max(1, ...designers.map(totalTempoMin));
-  const cC = document.getElementById("chart-criativos");
-  const cH = document.getElementById("chart-horas");
-  cC.innerHTML = ""; cH.innerHTML = "";
-  designers.forEach(d => {
-    const col = getColor(d);
-    const tc = totalCriativos(d);
-    const tm = totalTempoMin(d);
-    cC.innerHTML += `<div class="cbar-wrap"><div class="cbar" style="height:${Math.max(4,(tc/maxCriat)*100)}%;background:${col.fg};opacity:0.85;"></div><div class="cbar-label">${d}</div></div>`;
-    cH.innerHTML += `<div class="cbar-wrap"><div class="cbar" style="height:${Math.max(4,(tm/maxMin)*100)}%;background:#0000FB;opacity:${0.3 + 0.6*(tm/maxMin)};"></div><div class="cbar-label">${d}</div></div>`;
+  renderRunrunKPIs();
+}
+
+function renderRunrunKPIs() {
+  const nomes = Object.keys(tarefasAbertasPorDesigner);
+  let totalAtrasadas = 0, totalHoje = 0, totalPrioridades = 0;
+  nomes.forEach(nome => {
+    const d = tarefasAbertasPorDesigner[nome];
+    totalAtrasadas += d.atrasadas || 0;
+    totalHoje += d.hoje || 0;
   });
+  Object.keys(tarefasDetalhePorDesigner).forEach(nome => {
+    ["atrasadas", "hoje", "futuras"].forEach(cat => {
+      (tarefasDetalhePorDesigner[nome][cat] || []).forEach(t => { if (t.urgente) totalPrioridades++; });
+    });
+  });
+
+  const elAtrasadas = document.getElementById("kpi-runrun-atrasadas");
+  const elHoje = document.getElementById("kpi-runrun-hoje");
+  const elPrioridades = document.getElementById("kpi-runrun-prioridades");
+  const elEsforco = document.getElementById("kpi-runrun-esforco");
+  if (!elAtrasadas) return; // ainda não carregou os dados do Runrun.it
+
+  elAtrasadas.textContent = totalAtrasadas;
+  elHoje.textContent = totalHoje;
+  elPrioridades.textContent = totalPrioridades;
+
+  elEsforco.innerHTML = Object.keys(esforcoHojePorDesigner).map(nome => {
+    const col = getColor(nome);
+    const min = esforcoHojePorDesigner[nome] || 0;
+    return `
+      <div class="runrun-kpi-esforco-item">
+        <div class="runrun-kpi-esforco-avatar" style="background:${col.bg};color:${col.fg};">${initials(nome)}</div>
+        <div class="runrun-kpi-esforco-tempo">${formatTempo(min)}</div>
+      </div>
+    `;
+  }).join("");
 }
 
 function renderActivity() {
@@ -1125,6 +1152,12 @@ function abrirTarefasModalCliente(nomeCliente) {
   renderTarefasModal();
   document.getElementById("tarefas-modal-overlay").classList.remove("hidden");
 }
+function abrirTarefasModalGeral(modo) {
+  tarefasModalTipo = "geral";
+  tarefasModalChave = modo;
+  renderTarefasModal();
+  document.getElementById("tarefas-modal-overlay").classList.remove("hidden");
+}
 function closeTarefasModal() { document.getElementById("tarefas-modal-overlay").classList.add("hidden"); }
 function trocarAbaTarefasModal(categoria) {
   tarefasModalCategoria = categoria;
@@ -1196,13 +1229,106 @@ function renderTarefaRow(t, categoria, mostrarSubtitulo) {
   `;
 }
 
+// Junta uma categoria (atrasadas/hoje) de todos os designers rastreados, ordenada por data.
+function tarefasDoTimeInteiro(categoria) {
+  const lista = [];
+  Object.keys(tarefasDetalhePorDesigner).forEach(designer => {
+    (tarefasDetalhePorDesigner[designer][categoria] || []).forEach(t => lista.push(t));
+  });
+  lista.sort((a, b) => (a.data || "9999").localeCompare(b.data || "9999"));
+  return lista;
+}
+// Junta as tarefas marcadas como urgentes de todo o time, em qualquer categoria de prazo.
+function tarefasPrioridadesDoTime() {
+  const lista = [];
+  Object.keys(tarefasDetalhePorDesigner).forEach(designer => {
+    ["atrasadas", "hoje", "futuras"].forEach(cat => {
+      (tarefasDetalhePorDesigner[designer][cat] || []).forEach(t => { if (t.urgente) lista.push(t); });
+    });
+  });
+  lista.sort((a, b) => (a.data || "9999").localeCompare(b.data || "9999"));
+  return lista;
+}
+
+function renderEsforcoRow(t, designer) {
+  const col = getColor(designer);
+  return `
+    <div class="tarefas-lista-item">
+      <div class="tarefas-lista-item-info">
+        <div class="tarefas-lista-item-titulo">${t.titulo}</div>
+        <div class="tarefas-lista-item-badges">
+          <span class="tarefas-badge" style="background:${col.bg};color:${col.fg};">${designer}</span>
+          <span class="tarefas-badge" style="background:${COLOR_PALETTE[Math.abs(hashStr(t.cliente)) % COLOR_PALETTE.length].bg};color:${COLOR_PALETTE[Math.abs(hashStr(t.cliente)) % COLOR_PALETTE.length].fg};">${t.cliente}</span>
+          ${t.status ? `<span class="tarefas-badge tarefas-badge-status">${t.status}</span>` : ""}
+        </div>
+      </div>
+      <div class="tarefas-lista-item-right">
+        <span class="tarefas-prazo-pill" style="background:#EEF6E7;color:#5A9A34;">${formatTempo(t.estimativaMin)}</span>
+        <a class="tarefas-lista-item-link" href="${t.link}" target="_blank" rel="noopener" title="Abrir no Runrun.it"><i class="ti ti-external-link"></i></a>
+      </div>
+    </div>
+  `;
+}
+
+function renderTarefasModalGeral(content) {
+  const modo = tarefasModalChave;
+  const config = {
+    atrasadas: { titulo: "Tarefas atrasadas", icone: "ti-alert-triangle", bg: "#FCE9EE", cor: "#C0396B" },
+    hoje: { titulo: "Tarefas para hoje", icone: "ti-calendar-due", bg: "#FDF1DC", cor: "#B8791B" },
+    prioridades: { titulo: "Prioridades", icone: "ti-flag-filled", bg: "#E6F1FB", cor: "#185FA5" },
+    esforco: { titulo: "Esforço de hoje", icone: "ti-chart-bar", bg: "#EEF6E7", cor: "#5A9A34" }
+  }[modo];
+
+  let listaHtml = "";
+  let subtitulo = "";
+
+  if (modo === "atrasadas" || modo === "hoje") {
+    const lista = tarefasDoTimeInteiro(modo);
+    subtitulo = lista.length + " tarefa(s) de todo o time";
+    listaHtml = lista.length ? lista.map(t => renderTarefaRow(t, modo, "designer")).join("") : `<div class="tarefas-lista-vazio">Nenhuma tarefa nessa categoria.</div>`;
+  } else if (modo === "prioridades") {
+    const lista = tarefasPrioridadesDoTime();
+    subtitulo = lista.length + " tarefa(s) urgente(s)";
+    listaHtml = lista.length ? lista.map(t => renderTarefaRow(t, t.data && t.data < Utilities_hojeISO() ? "atrasadas" : "futuras", "designer")).join("") : `<div class="tarefas-lista-vazio">Nenhuma tarefa urgente no momento.</div>`;
+  } else if (modo === "esforco") {
+    const nomes = Object.keys(esforcoHojeTarefas);
+    const totalMin = nomes.reduce((s, n) => s + (esforcoHojePorDesigner[n] || 0), 0);
+    subtitulo = "Total do time: " + formatTempo(totalMin);
+    const linhas = [];
+    nomes.forEach(nome => {
+      (esforcoHojeTarefas[nome] || []).forEach(t => linhas.push(renderEsforcoRow(t, nome)));
+    });
+    listaHtml = linhas.length ? linhas.join("") : `<div class="tarefas-lista-vazio">Nenhuma tarefa planejada pra hoje no Gantt.</div>`;
+  }
+
+  content.innerHTML = `
+    <div class="tarefas-modal-header">
+      <div class="tarefas-modal-avatar" style="background:${config.bg};color:${config.cor};"><i class="ti ${config.icone}"></i></div>
+      <div>
+        <div class="tarefas-modal-title">${config.titulo}</div>
+        <div class="tarefas-modal-subtitle">${subtitulo}</div>
+      </div>
+    </div>
+    <div id="tarefas-modal-lista">${listaHtml}</div>
+  `;
+}
+function Utilities_hojeISO() {
+  return new Date().toLocaleDateString("sv-SE", { timeZone: "America/Sao_Paulo" });
+}
+
 function renderTarefasModal() {
+  const content = document.getElementById("tarefas-modal-content");
+
+  if (tarefasModalTipo === "geral") {
+    renderTarefasModalGeral(content);
+    return;
+  }
+
   const abas = [
     { key: "atrasadas", label: "Atrasadas" },
     { key: "hoje", label: "Vence hoje" },
     { key: "futuras", label: "Futuras" }
   ];
-  const content = document.getElementById("tarefas-modal-content");
   let headerHtml, contagens, dados, subtituloRow;
 
   if (tarefasModalTipo === "designer") {
@@ -1408,6 +1534,8 @@ async function loadRunrunAtividades() {
     tarefasAbertasPorDesigner = json2.porDesigner || {};
     tarefasDetalhePorDesigner = json2.tarefas || {};
     tarefasPorCliente = json2.porCliente || {};
+    esforcoHojePorDesigner = json2.esforcoHoje || {};
+    esforcoHojeTarefas = json2.esforcoHojeTarefas || {};
     renderAll();
   } catch (err) {
     console.error("Falha ao carregar tarefas abertas do Runrun.it:", err);
