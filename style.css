@@ -35,8 +35,18 @@
 
   .content { padding: 0.8rem 1.5rem 4rem; }
 
-  .kpi-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 18px; }
+  .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 18px; }
   .kpi-card { background: #fff; border-radius: 14px; padding: 14px 18px; box-shadow: 0 1px 3px rgba(20,20,18,0.06); cursor: default; }
+  .kpi-card.clicavel { cursor: pointer; transition: box-shadow .15s, transform .15s; }
+  .kpi-card.clicavel:hover { box-shadow: 0 4px 14px rgba(20,20,18,0.1); transform: translateY(-1px); }
+  .kpi-esforco-designers { margin-top: 2px; }
+  .kpi-esforco-designer-linha { display: flex; align-items: center; justify-content: space-between; font-size: 11.5px; padding: 2px 0; }
+  .kpi-esforco-designer-linha .nome { color: #55534c; font-weight: 500; }
+  .kpi-esforco-designer-linha .tempo { font-weight: 700; color: #5A9A34; }
+  .loading-banner { display: flex; align-items: center; justify-content: center; gap: 8px; background: #0000FB; color: #fff; font-size: 12px; font-weight: 600; padding: 10px; border-radius: 12px; margin-bottom: 14px; transition: opacity .35s, transform .35s, max-height .35s; overflow: hidden; }
+  .loading-banner.hidden { opacity: 0; transform: translateY(-8px); max-height: 0; padding-top: 0; padding-bottom: 0; margin-bottom: 0; pointer-events: none; }
+  .loading-spin { width: 13px; height: 13px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.4); border-top-color: #fff; animation: loading-girar .7s linear infinite; flex-shrink: 0; }
+  @keyframes loading-girar { to { transform: rotate(360deg); } }
   .runrun-kpi-esforco-row { display: flex; gap: 10px; margin-bottom: 4px; }
   .runrun-kpi-esforco-item { display: flex; flex-direction: column; align-items: center; gap: 2px; }
   .runrun-kpi-esforco-avatar { width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 700; }
