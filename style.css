@@ -72,6 +72,7 @@
   .designer-name-input:focus { background: #f1efe8; }
   .designer-role { font-size: 10px; color: #a3a091; margin-top: 2px; margin-bottom: 12px; }
   .designer-stats-row { display: flex; justify-content: space-around; border-top: 1px solid #eeece4; padding-top: 10px; }
+  .runrun-stats-row { margin-top: 12px; }
   .home-office-row { margin-top: 10px; padding-top: 10px; border-top: 1px solid #eeece4; }
   .ho-label { font-size: 9px; color: #a3a091; text-align: center; margin-bottom: 5px; font-weight: 500; }
   .ho-bars { display: flex; gap: 3px; justify-content: center; }
@@ -165,11 +166,14 @@
   .tarefas-tab { flex: 1; border: none; background: none; padding: 10px 12px; border-radius: 10px; font-size: 12.5px; font-weight: 600; cursor: pointer; color: #78766e; transition: background .15s, color .15s; }
   .tarefas-tab.active { background: #fff; color: #1a1a18; box-shadow: 0 1px 3px rgba(20,20,18,0.1); }
   .tarefas-tab .tarefas-tab-count { font-weight: 700; }
-  .tarefas-lista-item { background: #fff; border-radius: 14px; padding: 14px 16px; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .tarefas-lista-item { background: #fff; border-radius: 14px; padding: 14px 16px; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; gap: 12px; box-shadow: 0 2px 8px rgba(20,20,18,0.06); }
   .tarefas-lista-item-info { min-width: 0; }
-  .tarefas-lista-item-titulo { font-size: 13px; font-weight: 600; margin-bottom: 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: flex; align-items: center; gap: 5px; }
-  .tarefas-lista-item-meta { font-size: 11px; color: #78766e; }
+  .tarefas-lista-item-titulo { font-size: 13px; font-weight: 600; margin-bottom: 7px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: flex; align-items: center; gap: 5px; }
+  .tarefas-lista-item-badges { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  .tarefas-badge { font-size: 10px; font-weight: 600; padding: 3px 9px; border-radius: 7px; white-space: nowrap; }
+  .tarefas-badge-status { background: #F1EFE8; color: #78766e; }
   .tarefas-lista-item-right { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+  .tarefas-data-texto { font-size: 11px; color: #a3a091; white-space: nowrap; }
   .tarefas-prazo-pill { font-size: 10.5px; font-weight: 600; padding: 4px 10px; border-radius: 8px; white-space: nowrap; }
   .tarefas-lista-item-link { flex-shrink: 0; width: 28px; height: 28px; border-radius: 50%; background: #F3F3F1; display: flex; align-items: center; justify-content: center; color: #55534c; text-decoration: none; font-size: 13px; }
   .tarefas-lista-item-link:hover { background: #E6F1FB; color: #0000FB; }
