@@ -39,10 +39,10 @@
   .kpi-card { background: #fff; border-radius: 14px; padding: 14px 18px; box-shadow: 0 1px 3px rgba(20,20,18,0.06); cursor: default; }
   .kpi-card.clicavel { cursor: pointer; transition: box-shadow .15s, transform .15s; }
   .kpi-card.clicavel:hover { box-shadow: 0 4px 14px rgba(20,20,18,0.1); transform: translateY(-1px); }
-  .kpi-esforco-designers { margin-top: 2px; }
-  .kpi-esforco-designer-linha { display: flex; align-items: center; justify-content: space-between; font-size: 11.5px; padding: 2px 0; }
-  .kpi-esforco-designer-linha .nome { color: #55534c; font-weight: 500; }
-  .kpi-esforco-designer-linha .tempo { font-weight: 700; color: #5A9A34; }
+  .kpi-esforco-designers { margin-top: 4px; display: flex; gap: 18px; }
+  .kpi-esforco-designer-col { display: flex; flex-direction: column; }
+  .kpi-esforco-designer-valor { font-size: 15px; font-weight: 700; }
+  .kpi-esforco-designer-nome { font-size: 10px; color: #a3a091; margin-top: 2px; }
   .loading-banner { display: flex; align-items: center; justify-content: center; gap: 8px; background: #0000FB; color: #fff; font-size: 12px; font-weight: 600; padding: 10px; border-radius: 12px; margin-bottom: 14px; transition: opacity .35s, transform .35s, max-height .35s; overflow: hidden; }
   .loading-banner.hidden { opacity: 0; transform: translateY(-8px); max-height: 0; padding-top: 0; padding-bottom: 0; margin-bottom: 0; pointer-events: none; }
   .loading-spin { width: 13px; height: 13px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.4); border-top-color: #fff; animation: loading-girar .7s linear infinite; flex-shrink: 0; }
@@ -58,6 +58,7 @@
   .esforco-modal-tira-avatar { width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 700; }
   .esforco-modal-tira-nome { font-size: 12px; font-weight: 600; }
   .esforco-modal-tira-tempo { font-size: 12px; font-weight: 700; color: #5A9A34; }
+  .esforco-modal-tira-qtd { font-size: 10px; color: #a3a091; }
   .kpi-label { font-size: 11px; color: #78766e; margin-bottom: 5px; font-weight: 500; }
   .kpi-value { font-size: 22px; font-weight: 700; line-height: 1; }
   .kpi-sub { font-size: 10px; color: #a3a091; margin-top: 5px; }
