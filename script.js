@@ -62,6 +62,7 @@ let tarefasModalChaveRunrun = null; // nome exato do cliente no Runrun.it, quand
 let tarefasModalCategoria = "atrasadas";
 let esforcoHojePorDesigner = {}; // minutos estimados no dia, por designer (baseado no Gantt do Runrun.it)
 let esforcoHojeTarefas = {}; // lista de tarefas que compõem esse esforço, por designer
+let esforcoModalFiltroDesigner = null; // quando definido, o pop-up de esforço mostra só as tarefas dessa pessoa
 let currentPage = "designers";
 let designerHomeOffice = {};
 let sortClientesAZ = false;
@@ -584,7 +585,6 @@ function removeDesigner(designer) {
 
 function renderCharts() {
   renderRunrunKPIs();
-  renderEsforcoDiario();
 }
 
 function renderRunrunKPIs() {
@@ -600,32 +600,24 @@ function renderRunrunKPIs() {
       (tarefasDetalhePorDesigner[nome][cat] || []).forEach(t => { if (t.urgente) totalPrioridades++; });
     });
   });
-  const totalMes = tarefasMesEAtrasadasDoTime().length;
 
   const elAtrasadas = document.getElementById("kpi-runrun-atrasadas");
   const elHoje = document.getElementById("kpi-runrun-hoje");
   const elPrioridades = document.getElementById("kpi-runrun-prioridades");
-  const elMes = document.getElementById("kpi-runrun-mes");
+  const elEsforco = document.getElementById("kpi-runrun-esforco");
   if (!elAtrasadas) return; // ainda não carregou os dados do Runrun.it
 
   elAtrasadas.textContent = totalAtrasadas;
   elHoje.textContent = totalHoje;
   elPrioridades.textContent = totalPrioridades;
-  elMes.textContent = totalMes;
-}
 
-function renderEsforcoDiario() {
-  const container = document.getElementById("esforco-diario-lista");
-  if (!container) return;
-  const nomes = Object.keys(esforcoHojePorDesigner);
-  if (!nomes.length) { container.innerHTML = `<div class="tarefas-lista-vazio">Carregando dados do Runrun.it...</div>`; return; }
-
-  container.innerHTML = nomes.map(nome => {
-    const minutos = esforcoHojePorDesigner[nome] || 0;
+  elEsforco.innerHTML = Object.keys(esforcoHojePorDesigner).map(nome => {
+    const col = getColor(nome);
+    const min = esforcoHojePorDesigner[nome] || 0;
     return `
-      <div class="esforco-designer-row-compacto">
-        <div class="esforco-designer-nome">${nome}</div>
-        <div class="esforco-designer-tempo">${formatTempo(minutos)}</div>
+      <div class="runrun-kpi-esforco-item">
+        <div class="runrun-kpi-esforco-avatar" style="background:${col.bg};color:${col.fg};">${initials(nome)}</div>
+        <div class="runrun-kpi-esforco-tempo">${formatTempo(min)}</div>
       </div>
     `;
   }).join("");
@@ -1159,8 +1151,13 @@ function abrirTarefasModalCliente(nomeCliente) {
 function abrirTarefasModalGeral(modo) {
   tarefasModalTipo = "geral";
   tarefasModalChave = modo;
+  esforcoModalFiltroDesigner = null;
   renderTarefasModal();
   document.getElementById("tarefas-modal-overlay").classList.remove("hidden");
+}
+function selecionarDesignerEsforco(nome) {
+  esforcoModalFiltroDesigner = esforcoModalFiltroDesigner === nome ? null : nome;
+  renderTarefasModal();
 }
 function closeTarefasModal() { document.getElementById("tarefas-modal-overlay").classList.add("hidden"); }
 function trocarAbaTarefasModal(categoria) {
@@ -1326,13 +1323,10 @@ function renderTarefasModalGeral(content) {
       <div class="esforco-modal-tira">
         ${nomes.map(nome => {
           const col = getColor(nome);
-          const foto = designerPhotos[nome];
-          const avatarHtml = foto
-            ? `<img src="${foto}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`
-            : initials(nome);
+          const selecionado = esforcoModalFiltroDesigner === nome ? " selecionado" : "";
           return `
-            <div class="esforco-modal-tira-item">
-              <div class="esforco-modal-tira-avatar" style="background:${col.bg};color:${col.fg};">${avatarHtml}</div>
+            <div class="esforco-modal-tira-item${selecionado}" onclick="selecionarDesignerEsforco('${nome}')">
+              <div class="esforco-modal-tira-avatar" style="background:${col.bg};color:${col.fg};">${initials(nome)}</div>
               <div class="esforco-modal-tira-nome">${nome}</div>
               <div class="esforco-modal-tira-tempo">${formatTempo(esforcoHojePorDesigner[nome] || 0)}</div>
             </div>
@@ -1342,6 +1336,7 @@ function renderTarefasModalGeral(content) {
     `;
     const linhas = [];
     nomes.forEach(nome => {
+      if (esforcoModalFiltroDesigner && esforcoModalFiltroDesigner !== nome) return;
       (esforcoHojeTarefas[nome] || []).forEach(t => linhas.push(renderEsforcoRow(t, nome)));
     });
     listaHtml = tiraDesigners + (linhas.length ? linhas.join("") : `<div class="tarefas-lista-vazio">Nenhuma tarefa planejada pra hoje no Gantt.</div>`);
