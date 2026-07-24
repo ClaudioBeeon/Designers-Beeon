@@ -614,16 +614,6 @@ function renderRunrunKPIs() {
   elMes.textContent = totalMes;
 }
 
-function toggleEsforcoDesigner(nome) {
-  const idSeguro = nome.replace(/\s+/g, "-");
-  const expandEl = document.getElementById("esforco-expand-" + idSeguro);
-  const chevronEl = document.getElementById("esforco-chevron-" + idSeguro);
-  if (!expandEl) return;
-  const abrindo = expandEl.style.display === "none";
-  expandEl.style.display = abrindo ? "block" : "none";
-  if (chevronEl) chevronEl.style.transform = abrindo ? "rotate(180deg)" : "rotate(0deg)";
-}
-
 function renderEsforcoDiario() {
   const container = document.getElementById("esforco-diario-lista");
   if (!container) return;
@@ -631,27 +621,11 @@ function renderEsforcoDiario() {
   if (!nomes.length) { container.innerHTML = `<div class="tarefas-lista-vazio">Carregando dados do Runrun.it...</div>`; return; }
 
   container.innerHTML = nomes.map(nome => {
-    const idSeguro = nome.replace(/\s+/g, "-");
-    const col = getColor(nome);
-    const foto = designerPhotos[nome];
-    const avatarHtml = foto
-      ? `<img src="${foto}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`
-      : initials(nome);
     const minutos = esforcoHojePorDesigner[nome] || 0;
-    const tarefas = esforcoHojeTarefas[nome] || [];
     return `
-      <div class="esforco-designer-row" onclick="toggleEsforcoDesigner('${nome}')">
-        <div class="esforco-designer-left">
-          <div class="esforco-designer-avatar" style="background:${col.bg};color:${col.fg};">${avatarHtml}</div>
-          <div class="esforco-designer-nome">${nome}</div>
-        </div>
-        <div class="esforco-designer-right">
-          <div class="esforco-designer-tempo">${formatTempo(minutos)}</div>
-          <i class="ti ti-chevron-down esforco-chevron" id="esforco-chevron-${idSeguro}"></i>
-        </div>
-      </div>
-      <div class="esforco-designer-expand" id="esforco-expand-${idSeguro}" style="display:none;">
-        ${tarefas.length ? tarefas.map(t => renderEsforcoRow(t, nome)).join("") : `<div class="tarefas-lista-vazio">Nenhuma tarefa contando pro esforço de hoje.</div>`}
+      <div class="esforco-designer-row-compacto">
+        <div class="esforco-designer-nome">${nome}</div>
+        <div class="esforco-designer-tempo">${formatTempo(minutos)}</div>
       </div>
     `;
   }).join("");
@@ -1348,11 +1322,29 @@ function renderTarefasModalGeral(content) {
     const nomes = Object.keys(esforcoHojeTarefas);
     const totalMin = nomes.reduce((s, n) => s + (esforcoHojePorDesigner[n] || 0), 0);
     subtitulo = "Total do time: " + formatTempo(totalMin);
+    const tiraDesigners = `
+      <div class="esforco-modal-tira">
+        ${nomes.map(nome => {
+          const col = getColor(nome);
+          const foto = designerPhotos[nome];
+          const avatarHtml = foto
+            ? `<img src="${foto}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`
+            : initials(nome);
+          return `
+            <div class="esforco-modal-tira-item">
+              <div class="esforco-modal-tira-avatar" style="background:${col.bg};color:${col.fg};">${avatarHtml}</div>
+              <div class="esforco-modal-tira-nome">${nome}</div>
+              <div class="esforco-modal-tira-tempo">${formatTempo(esforcoHojePorDesigner[nome] || 0)}</div>
+            </div>
+          `;
+        }).join("")}
+      </div>
+    `;
     const linhas = [];
     nomes.forEach(nome => {
       (esforcoHojeTarefas[nome] || []).forEach(t => linhas.push(renderEsforcoRow(t, nome)));
     });
-    listaHtml = linhas.length ? linhas.join("") : `<div class="tarefas-lista-vazio">Nenhuma tarefa planejada pra hoje no Gantt.</div>`;
+    listaHtml = tiraDesigners + (linhas.length ? linhas.join("") : `<div class="tarefas-lista-vazio">Nenhuma tarefa planejada pra hoje no Gantt.</div>`);
   }
 
   content.innerHTML = `
