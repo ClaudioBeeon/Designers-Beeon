@@ -69,13 +69,39 @@
     </div>
 
     <div class="right-col">
-      <div class="chart-card">
-        <div class="section-title" style="margin-bottom:0;">Criativos por designer</div>
-        <div class="chart-bars" id="chart-criativos"></div>
-      </div>
-      <div class="chart-card">
-        <div class="section-title" style="margin-bottom:0;">Horas estimadas</div>
-        <div class="chart-bars" id="chart-horas"></div>
+      <div class="runrun-kpi-grid" id="runrun-kpi-grid">
+        <div class="runrun-kpi-card" onclick="abrirTarefasModalGeral('atrasadas')">
+          <div class="runrun-kpi-top">
+            <div class="runrun-kpi-icon" style="background:#FCE9EE;color:#C0396B;"><i class="ti ti-alert-triangle"></i></div>
+            <i class="ti ti-arrow-up-right runrun-kpi-arrow"></i>
+          </div>
+          <div class="runrun-kpi-num" id="kpi-runrun-atrasadas">–</div>
+          <div class="runrun-kpi-label">Tarefas atrasadas</div>
+        </div>
+        <div class="runrun-kpi-card" onclick="abrirTarefasModalGeral('hoje')">
+          <div class="runrun-kpi-top">
+            <div class="runrun-kpi-icon" style="background:#FDF1DC;color:#B8791B;"><i class="ti ti-calendar-due"></i></div>
+            <i class="ti ti-arrow-up-right runrun-kpi-arrow"></i>
+          </div>
+          <div class="runrun-kpi-num" id="kpi-runrun-hoje">–</div>
+          <div class="runrun-kpi-label">Tarefas para hoje</div>
+        </div>
+        <div class="runrun-kpi-card" onclick="abrirTarefasModalGeral('prioridades')">
+          <div class="runrun-kpi-top">
+            <div class="runrun-kpi-icon" style="background:#E6F1FB;color:#185FA5;"><i class="ti ti-flag-filled"></i></div>
+            <i class="ti ti-arrow-up-right runrun-kpi-arrow"></i>
+          </div>
+          <div class="runrun-kpi-num" id="kpi-runrun-prioridades">–</div>
+          <div class="runrun-kpi-label">Prioridades</div>
+        </div>
+        <div class="runrun-kpi-card" onclick="abrirTarefasModalGeral('esforco')">
+          <div class="runrun-kpi-top">
+            <div class="runrun-kpi-icon" style="background:#EEF6E7;color:#5A9A34;"><i class="ti ti-chart-bar"></i></div>
+            <i class="ti ti-arrow-up-right runrun-kpi-arrow"></i>
+          </div>
+          <div class="runrun-kpi-esforco-row" id="kpi-runrun-esforco"></div>
+          <div class="runrun-kpi-label">Esforço hoje</div>
+        </div>
       </div>
       <div class="activity-card">
         <div class="section-title" style="margin-bottom:8px;">
