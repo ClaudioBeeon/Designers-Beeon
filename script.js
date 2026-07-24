@@ -1183,7 +1183,10 @@ async function pollForUpdates() {
 
 async function loadDriveActivity() {
   const el = document.getElementById("activity-list");
+  const btn = document.getElementById("refresh-activity-btn");
   if (!el) return;
+  if (btn) { btn.classList.add("spinning"); btn.disabled = true; }
+  el.innerHTML = `<div class="activity-loading"><div class="activity-spinner"></div> Buscando atividades recentes...</div>`;
   try {
     const res = await fetch(WEBAPP_URL + "?tipo=atividades", { method: "GET" });
     const json = await res.json();
@@ -1194,6 +1197,9 @@ async function loadDriveActivity() {
     renderDriveActivity(json.atividades || []);
   } catch (err) {
     console.error("Falha ao carregar atividades do Drive:", err);
+    el.innerHTML = `<div style="font-size:11px;color:#a3a091;">Não foi possível carregar as atividades agora. Tente recarregar a página.</div>`;
+  } finally {
+    if (btn) { btn.classList.remove("spinning"); btn.disabled = false; }
   }
 }
 
