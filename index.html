@@ -273,7 +273,7 @@
         <button class="sort-btn" id="sort-az-clientes-btn" onclick="toggleSortClientesAZ()"><i class="ti ti-sort-ascending-letters"></i> A-Z</button>
       </div>
     </div>
-    <div class="designers-grid" id="clientes-grid" style="grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); align-items: stretch;"></div>
+    <div class="designers-grid" id="clientes-grid" style="grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); align-items: stretch;"></div>
   </div>
 
 
@@ -1057,6 +1057,13 @@ function buildMergedCard(group, pageKey, editable) {
   atendWrap.style.cssText = "margin-top:8px;margin-left:38px;";
   const firstAtend = group.entries[0].c.atend || "Sem atendimento";
   if (editable) {
+    const atendPhotoUrl = (typeof ATENDIMENTO_PHOTOS !== "undefined" && ATENDIMENTO_PHOTOS[firstAtend]) || null;
+    if (atendPhotoUrl) {
+      const atendAvatar = document.createElement("img");
+      atendAvatar.src = atendPhotoUrl;
+      atendAvatar.style.cssText = "width:20px;height:20px;border-radius:50%;object-fit:cover;vertical-align:-5px;margin-right:5px;";
+      atendWrap.appendChild(atendAvatar);
+    }
     const atendEl = document.createElement("span");
     atendEl.className = "client-atend";
     atendEl.style.marginTop = "0"; atendEl.style.marginLeft = "0";
@@ -1079,9 +1086,9 @@ function buildMergedCard(group, pageKey, editable) {
       inp.addEventListener("keydown", e2 => { if (e2.key==="Enter") inp.blur(); e2.stopPropagation(); });
     });
     atendWrap.appendChild(atendEl);
-  } else {
+} else {
     atendWrap.innerHTML = `<span style="font-size:9.5px;color:#78766e;background:#F3F3F1;padding:2px 8px;border-radius:8px;">${firstAtend}</span>`;
-  }
+}
   card.appendChild(atendWrap);
 
   // Uma sub-linha por designer/cópia
@@ -1092,7 +1099,9 @@ function buildMergedCard(group, pageKey, editable) {
 
     const head = document.createElement("div");
     head.style.cssText = "display:flex;align-items:center;gap:6px;flex-wrap:wrap;";
-    head.innerHTML = `<span style="font-size:9.5px;font-weight:700;background:${col.bg};color:${col.fg};padding:2px 8px;border-radius:8px;"><i class="ti ti-palette" style="font-size:9px;"></i> ${designer}</span>`;
+    const designerPhotoUrl = designerPhotos[designer] || null;
+head.innerHTML = (designerPhotoUrl ? `<img src="${designerPhotoUrl}" style="width:18px;height:18px;border-radius:50%;object-fit:cover;">` : "") +
+  `<span style="font-size:9.5px;font-weight:700;background:${col.bg};color:${col.fg};padding:2px 8px;border-radius:8px;"><i class="ti ti-palette" style="font-size:9px;"></i> ${designer}</span>`;
     row.appendChild(head);
 
     const tagsRow = document.createElement("div");
