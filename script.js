@@ -52,6 +52,8 @@ let state = {};
 let history = [];
 let sortAZ = false;
 let expandedSet = new Set(["Paulo"]);
+let atividadesHojePorDesigner = {}; // preenchido pela integração com o Runrun.it
+let tarefasAbertasPorDesigner = {}; // atrasadas/hoje/futuras, preenchido pela integração com o Runrun.it
 let currentPage = "designers";
 let designerHomeOffice = {};
 let sortClientesAZ = false;
@@ -222,6 +224,14 @@ function renderDesigners() {
     top.className = "dcard-top";
     const photo = designerPhotos[designer];
     const avatarInner = photo ? `<img src="${photo}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">` : initials(designer);
+    const dadosRunrun = tarefasAbertasPorDesigner[designer];
+    const runrunRowHtml = dadosRunrun ? `
+      <div class="designer-stats-row runrun-stats-row">
+        <div class="dstat"><div class="dstat-num" style="color:#993556;">${dadosRunrun.atrasadas || 0}</div><div class="dstat-label">Atrasadas</div></div>
+        <div class="dstat"><div class="dstat-num" style="color:#854F0B;">${dadosRunrun.hoje || 0}</div><div class="dstat-label">Vence hoje</div></div>
+        <div class="dstat"><div class="dstat-num" style="color:#3B6D11;">${dadosRunrun.futuras || 0}</div><div class="dstat-label">Futuras</div></div>
+      </div>
+    ` : "";
     top.innerHTML = `
       <div class="avatar-wrap">
         <div class="avatar" style="background:${col.bg};color:${col.fg};">${avatarInner}</div>
@@ -232,7 +242,9 @@ function renderDesigners() {
         <div class="dstat"><div class="dstat-num">${clients.length}</div><div class="dstat-label">Clientes</div></div>
         <div class="dstat"><div class="dstat-num">${totalCriativos(designer)}</div><div class="dstat-label">Criativos</div></div>
         <div class="dstat"><div class="dstat-num">${formatTempo(totalTempoMin(designer))}</div><div class="dstat-label">Tempo</div></div>
+        <div class="dstat"><div class="dstat-num">${atividadesHojePorDesigner[designer] || 0}</div><div class="dstat-label">Entregues</div></div>
       </div>
+      ${runrunRowHtml}
     `;
     top.querySelector(".avatar-edit-btn").addEventListener("click", e => {
       e.stopPropagation();
@@ -1177,7 +1189,34 @@ async function pollForUpdates() {
   setInterval(pollForUpdates, 6000);
   loadDriveActivity();
   setInterval(loadDriveActivity, 120000);
+  loadRunrunAtividades();
+  setInterval(loadRunrunAtividades, 120000);
 })();
+
+// ============ ATIVIDADES POR DIA (RUNRUN.IT) ============
+
+async function loadRunrunAtividades() {
+  try {
+    const res = await fetch(WEBAPP_URL + "?tipo=atividadesPorDia", { method: "GET" });
+    const json = await res.json();
+    if (!json.ok) { console.error("Falha ao carregar atividades do Runrun.it:", json.error); return; }
+    const hoje = new Date().toLocaleDateString("sv-SE", { timeZone: "America/Sao_Paulo" }); // formato AAAA-MM-DD
+    atividadesHojePorDesigner = (json.porDia && json.porDia[hoje]) || {};
+    renderDesigners();
+  } catch (err) {
+    console.error("Falha ao carregar atividades do Runrun.it:", err);
+  }
+
+  try {
+    const res2 = await fetch(WEBAPP_URL + "?tipo=tarefasAbertas", { method: "GET" });
+    const json2 = await res2.json();
+    if (!json2.ok) { console.error("Falha ao carregar tarefas abertas do Runrun.it:", json2.error); return; }
+    tarefasAbertasPorDesigner = json2.porDesigner || {};
+    renderDesigners();
+  } catch (err) {
+    console.error("Falha ao carregar tarefas abertas do Runrun.it:", err);
+  }
+}
 
 // ============ ATIVIDADES DO DRIVE ============
 
