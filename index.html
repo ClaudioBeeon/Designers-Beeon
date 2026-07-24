@@ -56,6 +56,14 @@
 
   <div class="kpi-grid" id="kpi-grid"></div>
 
+  <div class="esforco-diario-card">
+    <div class="section-title" style="margin-bottom:14px;">
+      <span>Esforço diário</span>
+      <span style="font-weight:400;color:#a3a091;font-size:11px;">Atrasadas + planejado pra hoje no Gantt</span>
+    </div>
+    <div id="esforco-diario-lista"></div>
+  </div>
+
   <div class="content-grid">
     <div>
       <div class="section-title">
@@ -94,13 +102,13 @@
           <div class="runrun-kpi-num" id="kpi-runrun-prioridades">–</div>
           <div class="runrun-kpi-label">Prioridades</div>
         </div>
-        <div class="runrun-kpi-card" onclick="abrirTarefasModalGeral('esforco')">
+        <div class="runrun-kpi-card" onclick="abrirTarefasModalGeral('mes')">
           <div class="runrun-kpi-top">
-            <div class="runrun-kpi-icon" style="background:#EEF6E7;color:#5A9A34;"><i class="ti ti-chart-bar"></i></div>
+            <div class="runrun-kpi-icon" style="background:#F3EEFB;color:#6B3FA0;"><i class="ti ti-calendar-stats"></i></div>
             <i class="ti ti-arrow-up-right runrun-kpi-arrow"></i>
           </div>
-          <div class="runrun-kpi-esforco-row" id="kpi-runrun-esforco"></div>
-          <div class="runrun-kpi-label">Esforço hoje</div>
+          <div class="runrun-kpi-num" id="kpi-runrun-mes">–</div>
+          <div class="runrun-kpi-label">Tarefas do mês</div>
         </div>
       </div>
       <div class="activity-card">
