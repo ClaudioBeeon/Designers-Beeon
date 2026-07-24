@@ -54,6 +54,11 @@
 
   <div class="page active" id="page-designers">
 
+  <div class="loading-banner hidden" id="runrun-loading-banner">
+    <div class="loading-spin"></div>
+    Atualizando informações do Runrun.it...
+  </div>
+
   <div class="kpi-grid" id="kpi-grid"></div>
 
   <div class="content-grid">
@@ -94,13 +99,13 @@
           <div class="runrun-kpi-num" id="kpi-runrun-prioridades">–</div>
           <div class="runrun-kpi-label">Prioridades</div>
         </div>
-        <div class="runrun-kpi-card" onclick="abrirTarefasModalGeral('esforco')">
+        <div class="runrun-kpi-card" onclick="abrirTarefasModalGeral('mes')">
           <div class="runrun-kpi-top">
-            <div class="runrun-kpi-icon" style="background:#EEF6E7;color:#5A9A34;"><i class="ti ti-chart-bar"></i></div>
+            <div class="runrun-kpi-icon" style="background:#F3EEFB;color:#6B3FA0;"><i class="ti ti-calendar-stats"></i></div>
             <i class="ti ti-arrow-up-right runrun-kpi-arrow"></i>
           </div>
-          <div class="runrun-kpi-esforco-row" id="kpi-runrun-esforco"></div>
-          <div class="runrun-kpi-label">Esforço de Hoje</div>
+          <div class="runrun-kpi-num" id="kpi-runrun-mes">–</div>
+          <div class="runrun-kpi-label">Tarefas do mês</div>
         </div>
       </div>
       <div class="activity-card">
