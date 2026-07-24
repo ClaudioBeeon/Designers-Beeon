@@ -1418,10 +1418,61 @@ function renderTarefasModal() {
     `;
   }
 
+  let infoClienteHtml = "";
+  if (tarefasModalTipo === "cliente") {
+    const nomeCliente = tarefasModalChave;
+    const grupoLocal = mergeEntriesByClient(getAllClientsFlat()).find(g => normalizeName(g.clienteName) === normalizeName(nomeCliente));
+    if (grupoLocal) {
+      infoClienteHtml = `
+        <div class="cliente-info-grid">
+          ${grupoLocal.entries.map(({c, designer}) => {
+            const col = getColor(designer);
+            const fotoDesigner = designerPhotos[designer];
+            const avatarDesigner = fotoDesigner
+              ? `<img src="${fotoDesigner}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`
+              : initials(designer);
+            const atendFoto = ATENDIMENTO_PHOTOS[c.atend] || null;
+            const avatarAtend = atendFoto
+              ? `<img src="${atendFoto}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`
+              : initials(c.atend || "?");
+            const tagsHtml = (c.servicos || []).map(s => {
+              const st = getServicoStyle(s);
+              return `<span class="tarefas-badge" style="background:${st.bg};color:${st.color};">${s}</span>`;
+            }).join("");
+            return `
+              <div class="cliente-info-card">
+                <div class="cliente-info-pessoa">
+                  <div class="cliente-info-avatar" style="background:${col.bg};color:${col.fg};">${avatarDesigner}</div>
+                  <div>
+                    <div class="cliente-info-pessoa-label">Designer</div>
+                    <div class="cliente-info-pessoa-nome">${designer}</div>
+                  </div>
+                </div>
+                <div class="cliente-info-pessoa">
+                  <div class="cliente-info-avatar" style="background:#F1EFE8;color:#78766e;">${avatarAtend}</div>
+                  <div>
+                    <div class="cliente-info-pessoa-label">Atendimento</div>
+                    <div class="cliente-info-pessoa-nome">${c.atend || "Sem atendimento"}</div>
+                  </div>
+                </div>
+                <div class="cliente-info-stats">
+                  <div class="cliente-info-stat"><div class="cliente-info-stat-num">${c.criativos || 0}</div><div class="cliente-info-stat-label">Criativos</div></div>
+                  <div class="cliente-info-stat"><div class="cliente-info-stat-num">${formatTempo(c.tempo || 0)}</div><div class="cliente-info-stat-label">Tempo médio</div></div>
+                </div>
+                ${tagsHtml ? `<div class="cliente-info-tags">${tagsHtml}</div>` : ""}
+              </div>
+            `;
+          }).join("")}
+        </div>
+      `;
+    }
+  }
+
   const lista = dados[tarefasModalCategoria] || [];
 
   content.innerHTML = `
     <div class="tarefas-modal-header">${headerHtml}</div>
+    ${infoClienteHtml}
     <div class="tarefas-tabs">
       ${abas.map(a => `
         <button class="tarefas-tab${a.key === tarefasModalCategoria ? " active" : ""}" onclick="trocarAbaTarefasModal('${a.key}')">
