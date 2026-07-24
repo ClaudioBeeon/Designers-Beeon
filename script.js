@@ -199,11 +199,6 @@ function renderKPIs() {
       <div class="kpi-value">${formatTempo(totalMin)}</div>
       <div class="kpi-sub">${designers.filter(d=>d!=="Sem designer" && (state[d]||[]).length).length} designers ativos</div>
     </div>
-    <div class="kpi-card">
-      <div class="kpi-label">Sem designer</div>
-      <div class="kpi-value">${(state["Sem designer"]||[]).length}</div>
-      <div class="kpi-sub">clientes na fila</div>
-    </div>
   `;
 }
 
@@ -589,6 +584,7 @@ function removeDesigner(designer) {
 
 function renderCharts() {
   renderRunrunKPIs();
+  renderEsforcoDiario();
 }
 
 function renderRunrunKPIs() {
@@ -604,24 +600,58 @@ function renderRunrunKPIs() {
       (tarefasDetalhePorDesigner[nome][cat] || []).forEach(t => { if (t.urgente) totalPrioridades++; });
     });
   });
+  const totalMes = tarefasMesEAtrasadasDoTime().length;
 
   const elAtrasadas = document.getElementById("kpi-runrun-atrasadas");
   const elHoje = document.getElementById("kpi-runrun-hoje");
   const elPrioridades = document.getElementById("kpi-runrun-prioridades");
-  const elEsforco = document.getElementById("kpi-runrun-esforco");
+  const elMes = document.getElementById("kpi-runrun-mes");
   if (!elAtrasadas) return; // ainda não carregou os dados do Runrun.it
 
   elAtrasadas.textContent = totalAtrasadas;
   elHoje.textContent = totalHoje;
   elPrioridades.textContent = totalPrioridades;
+  elMes.textContent = totalMes;
+}
 
-  elEsforco.innerHTML = Object.keys(esforcoHojePorDesigner).map(nome => {
+function toggleEsforcoDesigner(nome) {
+  const idSeguro = nome.replace(/\s+/g, "-");
+  const expandEl = document.getElementById("esforco-expand-" + idSeguro);
+  const chevronEl = document.getElementById("esforco-chevron-" + idSeguro);
+  if (!expandEl) return;
+  const abrindo = expandEl.style.display === "none";
+  expandEl.style.display = abrindo ? "block" : "none";
+  if (chevronEl) chevronEl.style.transform = abrindo ? "rotate(180deg)" : "rotate(0deg)";
+}
+
+function renderEsforcoDiario() {
+  const container = document.getElementById("esforco-diario-lista");
+  if (!container) return;
+  const nomes = Object.keys(esforcoHojePorDesigner);
+  if (!nomes.length) { container.innerHTML = `<div class="tarefas-lista-vazio">Carregando dados do Runrun.it...</div>`; return; }
+
+  container.innerHTML = nomes.map(nome => {
+    const idSeguro = nome.replace(/\s+/g, "-");
     const col = getColor(nome);
-    const min = esforcoHojePorDesigner[nome] || 0;
+    const foto = designerPhotos[nome];
+    const avatarHtml = foto
+      ? `<img src="${foto}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`
+      : initials(nome);
+    const minutos = esforcoHojePorDesigner[nome] || 0;
+    const tarefas = esforcoHojeTarefas[nome] || [];
     return `
-      <div class="runrun-kpi-esforco-item">
-        <div class="runrun-kpi-esforco-avatar" style="background:${col.bg};color:${col.fg};">${initials(nome)}</div>
-        <div class="runrun-kpi-esforco-tempo">${formatTempo(min)}</div>
+      <div class="esforco-designer-row" onclick="toggleEsforcoDesigner('${nome}')">
+        <div class="esforco-designer-left">
+          <div class="esforco-designer-avatar" style="background:${col.bg};color:${col.fg};">${avatarHtml}</div>
+          <div class="esforco-designer-nome">${nome}</div>
+        </div>
+        <div class="esforco-designer-right">
+          <div class="esforco-designer-tempo">${formatTempo(minutos)}</div>
+          <i class="ti ti-chevron-down esforco-chevron" id="esforco-chevron-${idSeguro}"></i>
+        </div>
+      </div>
+      <div class="esforco-designer-expand" id="esforco-expand-${idSeguro}" style="display:none;">
+        ${tarefas.length ? tarefas.map(t => renderEsforcoRow(t, nome)).join("") : `<div class="tarefas-lista-vazio">Nenhuma tarefa contando pro esforço de hoje.</div>`}
       </div>
     `;
   }).join("");
@@ -1243,7 +1273,26 @@ function tarefasPrioridadesDoTime() {
   const lista = [];
   Object.keys(tarefasDetalhePorDesigner).forEach(designer => {
     ["atrasadas", "hoje", "futuras"].forEach(cat => {
-      (tarefasDetalhePorDesigner[designer][cat] || []).forEach(t => { if (t.urgente) lista.push(t); });
+      (tarefasDetalhePorDesigner[designer][cat] || []).forEach(t => {
+        if (t.urgente) lista.push(Object.assign({}, t, { _categoriaReal: cat }));
+      });
+    });
+  });
+  lista.sort((a, b) => (a.data || "9999").localeCompare(b.data || "9999"));
+  return lista;
+}
+// Junta tarefas do mês atual (qualquer status) + todas as atrasadas (de qualquer mês).
+function tarefasMesEAtrasadasDoTime() {
+  const hoje = new Date();
+  const anoMes = hoje.getFullYear() + "-" + String(hoje.getMonth() + 1).padStart(2, "0");
+  const lista = [];
+  Object.keys(tarefasDetalhePorDesigner).forEach(designer => {
+    ["atrasadas", "hoje", "futuras"].forEach(cat => {
+      (tarefasDetalhePorDesigner[designer][cat] || []).forEach(t => {
+        if (cat === "atrasadas" || (t.data && t.data.substring(0, 7) === anoMes)) {
+          lista.push(Object.assign({}, t, { _categoriaReal: cat }));
+        }
+      });
     });
   });
   lista.sort((a, b) => (a.data || "9999").localeCompare(b.data || "9999"));
@@ -1276,7 +1325,8 @@ function renderTarefasModalGeral(content) {
     atrasadas: { titulo: "Tarefas atrasadas", icone: "ti-alert-triangle", bg: "#FCE9EE", cor: "#C0396B" },
     hoje: { titulo: "Tarefas para hoje", icone: "ti-calendar-due", bg: "#FDF1DC", cor: "#B8791B" },
     prioridades: { titulo: "Prioridades", icone: "ti-flag-filled", bg: "#E6F1FB", cor: "#185FA5" },
-    esforco: { titulo: "Esforço de hoje", icone: "ti-chart-bar", bg: "#EEF6E7", cor: "#5A9A34" }
+    esforco: { titulo: "Esforço de hoje", icone: "ti-chart-bar", bg: "#EEF6E7", cor: "#5A9A34" },
+    mes: { titulo: "Tarefas do mês", icone: "ti-calendar-stats", bg: "#F3EEFB", cor: "#6B3FA0" }
   }[modo];
 
   let listaHtml = "";
@@ -1289,7 +1339,11 @@ function renderTarefasModalGeral(content) {
   } else if (modo === "prioridades") {
     const lista = tarefasPrioridadesDoTime();
     subtitulo = lista.length + " tarefa(s) urgente(s)";
-    listaHtml = lista.length ? lista.map(t => renderTarefaRow(t, t.data && t.data < Utilities_hojeISO() ? "atrasadas" : "futuras", "designer")).join("") : `<div class="tarefas-lista-vazio">Nenhuma tarefa urgente no momento.</div>`;
+    listaHtml = lista.length ? lista.map(t => renderTarefaRow(t, t._categoriaReal, "designer")).join("") : `<div class="tarefas-lista-vazio">Nenhuma tarefa urgente no momento.</div>`;
+  } else if (modo === "mes") {
+    const lista = tarefasMesEAtrasadasDoTime();
+    subtitulo = lista.length + " tarefa(s) do mês (inclui atrasadas)";
+    listaHtml = lista.length ? lista.map(t => renderTarefaRow(t, t._categoriaReal, "designer")).join("") : `<div class="tarefas-lista-vazio">Nenhuma tarefa nesse período.</div>`;
   } else if (modo === "esforco") {
     const nomes = Object.keys(esforcoHojeTarefas);
     const totalMin = nomes.reduce((s, n) => s + (esforcoHojePorDesigner[n] || 0), 0);
@@ -1311,9 +1365,6 @@ function renderTarefasModalGeral(content) {
     </div>
     <div id="tarefas-modal-lista">${listaHtml}</div>
   `;
-}
-function Utilities_hojeISO() {
-  return new Date().toLocaleDateString("sv-SE", { timeZone: "America/Sao_Paulo" });
 }
 
 function renderTarefasModal() {
