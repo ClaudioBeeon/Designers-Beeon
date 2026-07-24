@@ -78,7 +78,10 @@
         <div class="chart-bars" id="chart-horas"></div>
       </div>
       <div class="activity-card">
-        <div class="section-title" style="margin-bottom:8px;">Atividade recente</div>
+        <div class="section-title" style="margin-bottom:8px;">
+          <span>Atividade recente</span>
+          <button class="mini-icon-btn" id="refresh-activity-btn" title="Atualizar" onclick="loadDriveActivity()"><i class="ti ti-refresh"></i></button>
+        </div>
         <div id="activity-list"></div>
       </div>
     </div>
