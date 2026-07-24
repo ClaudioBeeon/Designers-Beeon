@@ -35,8 +35,18 @@
 
   .content { padding: 0.8rem 1.5rem 4rem; }
 
-  .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 18px; }
+  .kpi-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 18px; }
   .kpi-card { background: #fff; border-radius: 14px; padding: 14px 18px; box-shadow: 0 1px 3px rgba(20,20,18,0.06); cursor: default; }
+  .esforco-diario-card { background: #fff; border-radius: 14px; box-shadow: 0 1px 3px rgba(20,20,18,0.06); padding: 16px; margin-bottom: 18px; }
+  .esforco-designer-row { display: flex; align-items: center; justify-content: space-between; padding: 10px 6px; cursor: pointer; border-radius: 10px; transition: background .15s; }
+  .esforco-designer-row:hover { background: #F8F7F4; }
+  .esforco-designer-left { display: flex; align-items: center; gap: 10px; }
+  .esforco-designer-avatar { width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; flex-shrink: 0; }
+  .esforco-designer-nome { font-size: 13px; font-weight: 600; }
+  .esforco-designer-right { display: flex; align-items: center; gap: 10px; }
+  .esforco-designer-tempo { font-size: 13px; font-weight: 700; color: #5A9A34; }
+  .esforco-chevron { font-size: 15px; color: #a3a091; transition: transform .2s; }
+  .esforco-designer-expand { padding: 6px 6px 10px; }
   .kpi-label { font-size: 11px; color: #78766e; margin-bottom: 5px; font-weight: 500; }
   .kpi-value { font-size: 22px; font-weight: 700; line-height: 1; }
   .kpi-sub { font-size: 10px; color: #a3a091; margin-top: 5px; }
@@ -127,10 +137,6 @@
   .runrun-kpi-arrow { font-size: 15px; color: #d3d1c7; }
   .runrun-kpi-num { font-size: 24px; font-weight: 700; line-height: 1; margin-bottom: 4px; }
   .runrun-kpi-label { font-size: 10.5px; color: #78766e; font-weight: 500; }
-  .runrun-kpi-esforco-row { display: flex; gap: 10px; margin-bottom: 4px; }
-  .runrun-kpi-esforco-item { display: flex; flex-direction: column; align-items: center; gap: 2px; }
-  .runrun-kpi-esforco-avatar { width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 700; }
-  .runrun-kpi-esforco-tempo { font-size: 10px; font-weight: 700; }
   .activity-card { background: #fff; border-radius: 14px; box-shadow: 0 1px 3px rgba(20,20,18,0.06); padding: 14px; }
   #activity-list { max-height: 280px; overflow-y: auto; padding-right: 4px; }
   .activity-item { display: flex; align-items: center; gap: 8px; padding: 7px 0; border-bottom: 1px solid #f1efe8; }
