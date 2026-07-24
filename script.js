@@ -56,7 +56,9 @@ let atividadesHojePorDesigner = {}; // preenchido pela integração com o Runrun
 let tarefasAbertasPorDesigner = {}; // atrasadas/hoje/futuras, preenchido pela integração com o Runrun.it
 let tarefasDetalhePorDesigner = {}; // lista de tarefas de cada categoria, pro modal
 let tarefasPorCliente = {}; // contagem de tarefas em aberto por cliente
-let tarefasModalDesigner = null;
+let tarefasModalTipo = "designer"; // "designer" ou "cliente"
+let tarefasModalChave = null;
+let tarefasModalChaveRunrun = null; // nome exato do cliente no Runrun.it, quando tipo === "cliente"
 let tarefasModalCategoria = "atrasadas";
 let currentPage = "designers";
 let designerHomeOffice = {};
@@ -231,9 +233,9 @@ function renderDesigners() {
     const dadosRunrun = tarefasAbertasPorDesigner[designer];
     const runrunRowHtml = dadosRunrun ? `
       <div class="designer-stats-row runrun-stats-row">
-        <div class="dstat dstat-clicavel" onclick="event.stopPropagation();openTarefasModal('${designer}','atrasadas')"><div class="dstat-num" style="color:#993556;">${dadosRunrun.atrasadas || 0}</div><div class="dstat-label">Atrasadas</div></div>
-        <div class="dstat dstat-clicavel" onclick="event.stopPropagation();openTarefasModal('${designer}','hoje')"><div class="dstat-num" style="color:#854F0B;">${dadosRunrun.hoje || 0}</div><div class="dstat-label">Vence hoje</div></div>
-        <div class="dstat dstat-clicavel" onclick="event.stopPropagation();openTarefasModal('${designer}','futuras')"><div class="dstat-num" style="color:#3B6D11;">${dadosRunrun.futuras || 0}</div><div class="dstat-label">Futuras</div></div>
+        <div class="dstat dstat-clicavel" onclick="event.stopPropagation();abrirTarefasModalDesigner('${designer}','atrasadas')"><div class="dstat-num" style="color:#993556;">${dadosRunrun.atrasadas || 0}</div><div class="dstat-label">Atrasadas</div></div>
+        <div class="dstat dstat-clicavel" onclick="event.stopPropagation();abrirTarefasModalDesigner('${designer}','hoje')"><div class="dstat-num" style="color:#854F0B;">${dadosRunrun.hoje || 0}</div><div class="dstat-label">Vence hoje</div></div>
+        <div class="dstat dstat-clicavel" onclick="event.stopPropagation();abrirTarefasModalDesigner('${designer}','futuras')"><div class="dstat-num" style="color:#3B6D11;">${dadosRunrun.futuras || 0}</div><div class="dstat-label">Futuras</div></div>
       </div>
     ` : "";
     top.innerHTML = `
@@ -325,6 +327,8 @@ function buildClientCard(c, designer, showDesignerBadge) {
   card.className = "client-card";
   card.draggable = true;
   card.dataset.cliente = c.cliente;
+  card.style.cursor = "pointer";
+  card.addEventListener("click", () => abrirTarefasModalCliente(c.cliente));
   card.addEventListener("dragstart", () => { dragClientData = { cliente: c.cliente, fromDesigner: designer }; card.classList.add("dragging"); });
   card.addEventListener("dragend", () => card.classList.remove("dragging"));
 
@@ -428,7 +432,8 @@ function buildClientCard(c, designer, showDesignerBadge) {
   atendWrap.appendChild(atendEl);
   card.appendChild(atendWrap);
 
-  const qtdTarefasRunrun = tarefasPorCliente[c.cliente];
+  const clienteRunrunMatch = encontrarClienteRunrun(c.cliente);
+  const qtdTarefasRunrun = clienteRunrunMatch ? tarefasPorCliente[clienteRunrunMatch] : 0;
   if (qtdTarefasRunrun) {
     const tarefasBadge = document.createElement("div");
     tarefasBadge.className = "client-tarefas-badge";
@@ -613,6 +618,28 @@ function renderActivity() {
 
 function normalizeName(s) { return (s||"").trim().toLowerCase(); }
 
+// Compara nomes de cliente de forma flexível (o Runrun.it e o painel não
+// escrevem os nomes sempre do mesmo jeito: maiúsculas, acentos, hífens...)
+function normalizarParaComparar(s) {
+  return (s || "")
+    .toString()
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+function encontrarClienteRunrun(nomePainel) {
+  const alvo = normalizarParaComparar(nomePainel);
+  if (!alvo) return null;
+  const chaves = Object.keys(tarefasPorCliente);
+  for (const k of chaves) if (normalizarParaComparar(k) === alvo) return k;
+  for (const k of chaves) {
+    const nk = normalizarParaComparar(k);
+    if (nk && (nk.includes(alvo) || alvo.includes(nk))) return k;
+  }
+  return null;
+}
+
 function isHiddenOn(c, pageKey) { return !!(c.hidden && c.hidden[pageKey]); }
 function setHidden(c, pageKey, value) {
   if (!c.hidden) c.hidden = {};
@@ -679,7 +706,8 @@ function buildMergedCard(group, pageKey, editable) {
   const card = document.createElement("div");
   card.className = "client-card";
   card.draggable = false;
-  card.style.cursor = "default";
+  card.style.cursor = "pointer";
+  card.addEventListener("click", () => abrirTarefasModalCliente(group.clienteName));
 
   const clientCol = COLOR_PALETTE[Math.abs(hashStr(group.clienteName)) % COLOR_PALETTE.length];
   const topRow = document.createElement("div");
@@ -764,7 +792,8 @@ function buildMergedCard(group, pageKey, editable) {
   }
   card.appendChild(atendWrap);
 
-  const qtdTarefasRunrunMerged = tarefasPorCliente[group.clienteName];
+  const clienteRunrunMatchMerged = encontrarClienteRunrun(group.clienteName);
+  const qtdTarefasRunrunMerged = clienteRunrunMatchMerged ? tarefasPorCliente[clienteRunrunMatchMerged] : 0;
   if (qtdTarefasRunrunMerged) {
     const tarefasBadgeMerged = document.createElement("div");
     tarefasBadgeMerged.className = "client-tarefas-badge";
@@ -1081,9 +1110,18 @@ function closeClientDetail() { document.getElementById("client-detail-overlay").
 
 // ============ MODAL DE TAREFAS (RUNRUN.IT) ============
 
-function openTarefasModal(designer, categoria) {
-  tarefasModalDesigner = designer;
+function abrirTarefasModalDesigner(designer, categoria) {
+  tarefasModalTipo = "designer";
+  tarefasModalChave = designer;
   tarefasModalCategoria = categoria;
+  renderTarefasModal();
+  document.getElementById("tarefas-modal-overlay").classList.remove("hidden");
+}
+function abrirTarefasModalCliente(nomeCliente) {
+  tarefasModalTipo = "cliente";
+  tarefasModalChave = nomeCliente;
+  tarefasModalChaveRunrun = encontrarClienteRunrun(nomeCliente);
+  tarefasModalCategoria = "atrasadas";
   renderTarefasModal();
   document.getElementById("tarefas-modal-overlay").classList.remove("hidden");
 }
@@ -1096,31 +1134,99 @@ function formatDataTarefa(iso) {
   const [ano, mes, dia] = iso.split("-");
   return dia + "/" + mes;
 }
+function diasEntreHoje(iso) {
+  const hoje = new Date(); hoje.setHours(0,0,0,0);
+  const alvo = new Date(iso + "T00:00:00");
+  return Math.round((alvo - hoje) / 86400000);
+}
+function prazoInfo(categoria, data) {
+  if (categoria === "hoje") return { texto: "Vence hoje", bg: "#FAEEDA", cor: "#854F0B" };
+  if (categoria === "atrasadas") {
+    const d = Math.abs(diasEntreHoje(data));
+    return { texto: (d === 1 ? "1 dia atrasada" : d + " dias atrasada"), bg: "#FBEAF0", cor: "#993556" };
+  }
+  const d = diasEntreHoje(data);
+  return { texto: (d === 1 ? "em 1 dia" : "em " + d + " dias"), bg: "#EAF3DE", cor: "#3B6D11" };
+}
+
+// Junta as tarefas de todos os designers que pertencem a um cliente do Runrun.it,
+// já ordenadas por data de entrega desejada.
+function tarefasDoClienteRunrun(clienteRunrun) {
+  const resultado = { atrasadas: [], hoje: [], futuras: [] };
+  if (!clienteRunrun) return resultado;
+  Object.keys(tarefasDetalhePorDesigner).forEach(designer => {
+    ["atrasadas", "hoje", "futuras"].forEach(cat => {
+      (tarefasDetalhePorDesigner[designer][cat] || []).forEach(t => {
+        if (t.cliente === clienteRunrun) resultado[cat].push(t);
+      });
+    });
+  });
+  ["atrasadas", "hoje", "futuras"].forEach(cat => resultado[cat].sort((a, b) => (a.data || "9999").localeCompare(b.data || "9999")));
+  return resultado;
+}
+
+function renderTarefaRow(t, categoria, mostrarSubtitulo) {
+  const prazo = prazoInfo(categoria, t.data);
+  const subtitulo = mostrarSubtitulo === "designer" ? t.designer : t.cliente;
+  return `
+    <div class="tarefas-lista-item">
+      <div class="tarefas-lista-item-info">
+        <div class="tarefas-lista-item-titulo">${t.urgente ? '<i class="ti ti-flag-filled" style="color:#C0392B;font-size:11px;"></i> ' : ""}${t.titulo}</div>
+        <div class="tarefas-lista-item-meta">${subtitulo}${t.status ? " · " + t.status : ""}</div>
+      </div>
+      <div class="tarefas-lista-item-right">
+        <span class="tarefas-prazo-pill" style="background:${prazo.bg};color:${prazo.cor};">${prazo.texto}</span>
+        <a class="tarefas-lista-item-link" href="${t.link}" target="_blank" rel="noopener" title="Abrir no Runrun.it"><i class="ti ti-external-link"></i></a>
+      </div>
+    </div>
+  `;
+}
+
 function renderTarefasModal() {
-  const designer = tarefasModalDesigner;
-  const dados = tarefasDetalhePorDesigner[designer] || { atrasadas: [], hoje: [], futuras: [] };
-  const contagens = tarefasAbertasPorDesigner[designer] || { atrasadas: 0, hoje: 0, futuras: 0 };
-  const col = getColor(designer);
-  const fotoDesigner = designerPhotos[designer];
-  const avatarModalHtml = fotoDesigner
-    ? `<img src="${fotoDesigner}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`
-    : initials(designer);
   const abas = [
     { key: "atrasadas", label: "Atrasadas" },
     { key: "hoje", label: "Vence hoje" },
     { key: "futuras", label: "Futuras" }
   ];
-  const lista = dados[tarefasModalCategoria] || [];
-
   const content = document.getElementById("tarefas-modal-content");
-  content.innerHTML = `
-    <div class="tarefas-modal-header">
-      <div class="tarefas-modal-avatar" style="background:${col.bg};color:${col.fg};">${avatarModalHtml}</div>
+  let headerHtml, contagens, dados, subtituloRow;
+
+  if (tarefasModalTipo === "designer") {
+    const designer = tarefasModalChave;
+    dados = tarefasDetalhePorDesigner[designer] || { atrasadas: [], hoje: [], futuras: [] };
+    contagens = tarefasAbertasPorDesigner[designer] || { atrasadas: 0, hoje: 0, futuras: 0 };
+    const col = getColor(designer);
+    const fotoDesigner = designerPhotos[designer];
+    const avatarHtml = fotoDesigner
+      ? `<img src="${fotoDesigner}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`
+      : initials(designer);
+    subtituloRow = "cliente";
+    headerHtml = `
+      <div class="tarefas-modal-avatar" style="background:${col.bg};color:${col.fg};">${avatarHtml}</div>
       <div>
         <div class="tarefas-modal-title">${designer}</div>
         <div class="tarefas-modal-subtitle">Tarefas em aberto no Runrun.it</div>
       </div>
-    </div>
+    `;
+  } else {
+    const nomeCliente = tarefasModalChave;
+    dados = tarefasDoClienteRunrun(tarefasModalChaveRunrun);
+    contagens = { atrasadas: dados.atrasadas.length, hoje: dados.hoje.length, futuras: dados.futuras.length };
+    const clientCol = COLOR_PALETTE[Math.abs(hashStr(nomeCliente)) % COLOR_PALETTE.length];
+    subtituloRow = "designer";
+    headerHtml = `
+      <div class="tarefas-modal-avatar" style="background:${clientCol.bg};color:${clientCol.fg};">${initials(nomeCliente)}</div>
+      <div>
+        <div class="tarefas-modal-title">${nomeCliente}</div>
+        <div class="tarefas-modal-subtitle">${contagens.atrasadas + contagens.hoje + contagens.futuras} tarefa(s) em aberto no Runrun.it</div>
+      </div>
+    `;
+  }
+
+  const lista = dados[tarefasModalCategoria] || [];
+
+  content.innerHTML = `
+    <div class="tarefas-modal-header">${headerHtml}</div>
     <div class="tarefas-tabs">
       ${abas.map(a => `
         <button class="tarefas-tab${a.key === tarefasModalCategoria ? " active" : ""}" onclick="trocarAbaTarefasModal('${a.key}')">
@@ -1129,15 +1235,7 @@ function renderTarefasModal() {
       `).join("")}
     </div>
     <div id="tarefas-modal-lista">
-      ${lista.length ? lista.map(t => `
-        <div class="tarefas-lista-item">
-          <div class="tarefas-lista-item-info">
-            <div class="tarefas-lista-item-titulo">${t.titulo}</div>
-            <div class="tarefas-lista-item-meta">${t.cliente} · ${formatDataTarefa(t.data)}</div>
-          </div>
-          <a class="tarefas-lista-item-link" href="${t.link}" target="_blank" rel="noopener">Abrir <i class="ti ti-external-link" style="font-size:11px;"></i></a>
-        </div>
-      `).join("") : `<div class="tarefas-lista-vazio">Nenhuma tarefa nessa categoria.</div>`}
+      ${lista.length ? lista.map(t => renderTarefaRow(t, tarefasModalCategoria, subtituloRow)).join("") : `<div class="tarefas-lista-vazio">Nenhuma tarefa nessa categoria.</div>`}
     </div>
   `;
 }
