@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Painel Beeon — Clientes por Designer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="sidebar">
+  <div class="sidebar-top">
+    <button class="sb-item active" data-page="designers" onclick="switchPage('designers')"><i class="ti ti-layout-columns"></i><span>Designers</span></button>
+    <button class="sb-item" data-page="atendimento" onclick="switchPage('atendimento')"><i class="ti ti-headset"></i><span>Atendimento</span></button>
+    <button class="sb-item" data-page="servico" onclick="switchPage('servico')"><i class="ti ti-tag"></i><span>Serviço</span></button>
+    <button class="sb-item" data-page="clientes" onclick="switchPage('clientes')"><i class="ti ti-address-book"></i><span>Clientes</span></button>
+  </div>
+  <div class="sidebar-bottom">
+  </div>
+</div>
+
+<div class="app-main">
+
+<div class="topbar">
+  <div class="brand">
+    <div class="brand-dot"><i class="ti ti-layout-columns"></i></div>
+    <div class="brand-text">
+      <p>Painel Beeon</p>
+      <span id="page-subtitle">Clientes por designer</span>
+    </div>
+  </div>
+  <div class="search-bar" onclick="openSearch()">
+    <i class="ti ti-search"></i>
+    <span>Buscar cliente ou designer...</span>
+  </div>
+  <div style="display:flex; align-items:center; gap:8px;">
+    <span class="sync-status" id="sync-status"><i class="ti ti-cloud"></i> Carregando...</span>
+    <div class="icon-btn" title="Desfazer" onclick="undo()"><i class="ti ti-arrow-back-up" id="undo-icon"></i></div>
+    <div class="icon-btn" title="Exportar CSV" onclick="exportData()"><i class="ti ti-download"></i></div>
+    <div style="position:relative;">
+      <div class="icon-btn" title="Adicionar" onclick="toggleAddMenu(event)" style="background:#0000FB;"><i class="ti ti-plus" style="color:#fff;"></i></div>
+      <div id="add-menu" style="display:none;position:absolute;top:44px;right:0;background:#fff;border-radius:12px;box-shadow:0 8px 24px rgba(20,20,18,0.16);padding:6px;width:190px;z-index:50;">
+        <button onclick="closeAddMenu();openAddDesignerModal()" style="display:flex;align-items:center;gap:8px;padding:8px 10px;border:none;background:none;border-radius:8px;cursor:pointer;font-size:12.5px;font-weight:500;color:#1a1a18;text-align:left;width:100%;" onmouseover="this.style.background='#F3F3F1'" onmouseout="this.style.background='none'"><i class="ti ti-layout-columns" style="font-size:15px;color:#0000FB;"></i>Adicionar designer</button>
+        <button onclick="closeAddMenu();openAddAtendModal()" style="display:flex;align-items:center;gap:8px;padding:8px 10px;border:none;background:none;border-radius:8px;cursor:pointer;font-size:12.5px;font-weight:500;color:#1a1a18;text-align:left;width:100%;" onmouseover="this.style.background='#F3F3F1'" onmouseout="this.style.background='none'"><i class="ti ti-headset" style="font-size:15px;color:#0000FB;"></i>Adicionar atendimento</button>
+        <button onclick="closeAddMenu();openAddClientModal()" style="display:flex;align-items:center;gap:8px;padding:8px 10px;border:none;background:none;border-radius:8px;cursor:pointer;font-size:12.5px;font-weight:500;color:#1a1a18;text-align:left;width:100%;" onmouseover="this.style.background='#F3F3F1'" onmouseout="this.style.background='none'"><i class="ti ti-user-plus" style="font-size:15px;color:#0000FB;"></i>Adicionar cliente</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="content">
+
+  <div class="page active" id="page-designers">
+
+  <div class="kpi-grid" id="kpi-grid"></div>
+
+  <div class="content-grid">
+    <div>
+      <div class="section-title">
+        <span>Designers</span>
+        <div class="section-actions">
+          <button class="sort-btn" id="sort-az-btn" onclick="toggleSortAZ()"><i class="ti ti-sort-ascending-letters"></i> A-Z</button>
+          <button class="sort-btn" id="expand-all-btn" onclick="expandAll()"><i class="ti ti-arrows-maximize"></i> Abrir todos</button>
+        </div>
+      </div>
+      <div class="designers-grid" id="designers-grid"></div>
+    </div>
+
+    <div class="right-col">
+      <div class="chart-card">
+        <div class="section-title" style="margin-bottom:0;">Criativos por designer</div>
+        <div class="chart-bars" id="chart-criativos"></div>
+      </div>
+      <div class="chart-card">
+        <div class="section-title" style="margin-bottom:0;">Horas estimadas</div>
+        <div class="chart-bars" id="chart-horas"></div>
+      </div>
+      <div class="activity-card">
+        <div class="section-title" style="margin-bottom:8px;">Atividade recente</div>
+        <div id="activity-list"></div>
+      </div>
+    </div>
+  </div>
+
+  </div>
+
+  <div class="page" id="page-atendimento">
+    <div class="section-title"><span>Atendimento</span></div>
+    <div class="designers-grid" id="atendimento-grid"></div>
+  </div>
+
+  <div class="page" id="page-servico">
+    <div class="section-title"><span>Serviços</span></div>
+    <div class="designers-grid" id="servico-grid"></div>
+  </div>
+
+  <div class="page" id="page-clientes">
+    <div class="section-title">
+      <span>Todos os clientes</span>
+      <div class="section-actions">
+        <button class="sort-btn" id="sort-az-clientes-btn" onclick="toggleSortClientesAZ()"><i class="ti ti-sort-ascending-letters"></i> A-Z</button>
+      </div>
+    </div>
+    <div class="designers-grid" id="clientes-grid" style="grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); align-items: stretch;"></div>
+  </div>
+
+
+</div>
+
+</div>
+
+<div class="modal-overlay hidden" id="add-client-modal">
+  <div class="modal-box">
+    <h2><i class="ti ti-user-plus"></i> Novo cliente</h2>
+    <div class="modal-field">
+      <label>Nome do cliente</label>
+      <input type="text" id="new-cliente-nome" placeholder="Ex: Loja Tal">
+    </div>
+    <div class="modal-field">
+      <label>Escopo</label>
+      <select id="new-cliente-escopo">
+        <option value="INBOUND">Inbound</option>
+        <option value="PERFORMANCE" selected>Performance</option>
+        <option value="SEO">SEO</option>
+        <option value="REDE SOCIAL">Rede Social</option>
+      </select>
+    </div>
+    <div class="modal-field">
+      <label>Atendimento</label>
+      <input type="text" id="new-cliente-atend" list="atend-list" placeholder="Ex: Manu">
+      <datalist id="atend-list"></datalist>
+    </div>
+    <div class="modal-field">
+      <label>Designer</label>
+      <select id="new-cliente-designer"></select>
+    </div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeAddClientModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="submitAddClient()"><i class="ti ti-check"></i> Adicionar</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay hidden" id="add-designer-modal">
+  <div class="modal-box">
+    <h2><i class="ti ti-layout-columns"></i> Novo designer</h2>
+    <div class="modal-field">
+      <label>Nome do designer</label>
+      <input type="text" id="new-designer-nome" placeholder="Ex: Fernanda">
+    </div>
+    <div class="modal-field">
+      <label>Especialidade</label>
+      <input type="text" id="new-designer-role" placeholder="Ex: Performance, SEO, Social...">
+    </div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeAddDesignerModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="submitAddDesigner()"><i class="ti ti-check"></i> Adicionar</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay hidden" id="confirm-remove-modal">
+  <div class="modal-box">
+    <h2><i class="ti ti-trash"></i> Remover cliente</h2>
+    <p id="confirm-remove-text" style="font-size:12.5px;color:#55534c;margin-bottom:16px;line-height:1.5;"></p>
+    <div class="modal-actions" style="justify-content:flex-start;flex-wrap:wrap;">
+      <button class="btn" onclick="closeConfirmRemove()">Cancelar</button>
+      <button class="btn" id="confirm-remove-section-btn">Remover só desta seção</button>
+      <button class="btn" id="confirm-remove-all-btn" style="background:#FBEAF0;color:#993556;">Remover de tudo</button>
+    </div>
+  </div>
+</div>
+
+<div class="search-overlay hidden" id="search-overlay" onclick="if(event.target===this) closeSearch()">
+  <div class="search-box">
+    <div class="search-input-wrap">
+      <i class="ti ti-search"></i>
+      <input type="text" id="search-input" placeholder="Buscar cliente ou designer..." oninput="runSearch(this.value)">
+      <i class="ti ti-x" style="cursor:pointer;" onclick="closeSearch()"></i>
+    </div>
+    <div class="search-results" id="search-results"></div>
+  </div>
+</div>
+
+<div class="client-detail-overlay hidden" id="client-detail-overlay" onclick="if(event.target===this) closeClientDetail()">
+  <div class="client-detail-box">
+    <button class="client-detail-close" onclick="closeClientDetail()"><i class="ti ti-x"></i></button>
+    <div id="client-detail-content"></div>
+  </div>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
