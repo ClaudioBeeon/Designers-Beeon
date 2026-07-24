@@ -119,11 +119,18 @@
   .add-client-mini:hover { text-decoration: underline; }
 
   .right-col { display: flex; flex-direction: column; gap: 12px; }
-  .chart-card { background: #fff; border-radius: 14px; box-shadow: 0 1px 3px rgba(20,20,18,0.06); padding: 14px; }
-  .chart-bars { display: flex; align-items: flex-end; gap: 6px; height: 100px; margin-top: 10px; }
-  .cbar-wrap { display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 4px; flex: 1; min-width: 0; height: 100%; }
-  .cbar { width: 100%; border-radius: 4px 4px 0 0; transition: height .4s; min-height: 4px; flex-shrink: 0; }
-  .cbar-label { font-size: 8.5px; color: #a3a091; white-space: nowrap; font-weight: 500; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+  .runrun-kpi-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .runrun-kpi-card { background: #fff; border-radius: 14px; box-shadow: 0 1px 3px rgba(20,20,18,0.06); padding: 14px; cursor: pointer; transition: box-shadow .15s, transform .15s; }
+  .runrun-kpi-card:hover { box-shadow: 0 4px 14px rgba(20,20,18,0.1); transform: translateY(-1px); }
+  .runrun-kpi-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+  .runrun-kpi-icon { width: 34px; height: 34px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 16px; }
+  .runrun-kpi-arrow { font-size: 15px; color: #d3d1c7; }
+  .runrun-kpi-num { font-size: 24px; font-weight: 700; line-height: 1; margin-bottom: 4px; }
+  .runrun-kpi-label { font-size: 10.5px; color: #78766e; font-weight: 500; }
+  .runrun-kpi-esforco-row { display: flex; gap: 10px; margin-bottom: 4px; }
+  .runrun-kpi-esforco-item { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+  .runrun-kpi-esforco-avatar { width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 700; }
+  .runrun-kpi-esforco-tempo { font-size: 10px; font-weight: 700; }
   .activity-card { background: #fff; border-radius: 14px; box-shadow: 0 1px 3px rgba(20,20,18,0.06); padding: 14px; }
   #activity-list { max-height: 280px; overflow-y: auto; padding-right: 4px; }
   .activity-item { display: flex; align-items: center; gap: 8px; padding: 7px 0; border-bottom: 1px solid #f1efe8; }
