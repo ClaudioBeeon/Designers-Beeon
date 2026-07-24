@@ -37,13 +37,14 @@
 
   .kpi-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 18px; }
   .kpi-card { background: #fff; border-radius: 14px; padding: 14px 18px; box-shadow: 0 1px 3px rgba(20,20,18,0.06); cursor: default; }
-  .esforco-diario-card { background: #fff; border-radius: 14px; box-shadow: 0 1px 3px rgba(20,20,18,0.06); padding: 16px; margin-bottom: 18px; cursor: pointer; transition: box-shadow .15s, transform .15s; }
-  .esforco-diario-card:hover { box-shadow: 0 4px 14px rgba(20,20,18,0.1); transform: translateY(-1px); }
-  .esforco-designer-row-compacto { display: flex; align-items: center; justify-content: space-between; padding: 6px 2px; }
-  .esforco-designer-nome { font-size: 13px; font-weight: 600; }
-  .esforco-designer-tempo { font-size: 13px; font-weight: 700; color: #5A9A34; }
+  .runrun-kpi-esforco-row { display: flex; gap: 10px; margin-bottom: 4px; }
+  .runrun-kpi-esforco-item { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+  .runrun-kpi-esforco-avatar { width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 700; }
+  .runrun-kpi-esforco-tempo { font-size: 10px; font-weight: 700; }
   .esforco-modal-tira { display: flex; gap: 10px; margin-bottom: 18px; }
-  .esforco-modal-tira-item { flex: 1; background: #FAF9F7; border-radius: 14px; padding: 14px 10px; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  .esforco-modal-tira-item { flex: 1; background: #FAF9F7; border-radius: 14px; padding: 14px 10px; display: flex; flex-direction: column; align-items: center; gap: 6px; cursor: pointer; border: 2px solid transparent; transition: border-color .15s, background .15s; }
+  .esforco-modal-tira-item:hover { background: #F3F1EC; }
+  .esforco-modal-tira-item.selecionado { border-color: #0000FB; background: #E6F1FB; }
   .esforco-modal-tira-avatar { width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 700; }
   .esforco-modal-tira-nome { font-size: 12px; font-weight: 600; }
   .esforco-modal-tira-tempo { font-size: 12px; font-weight: 700; color: #5A9A34; }
