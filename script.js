@@ -382,19 +382,13 @@ function buildClientCard(c, designer, showDesignerBadge) {
   }
 
   const atendPhotoUrl = ATENDIMENTO_PHOTOS[c.atend] || null;
-const atendWrap = document.createElement("div");
-atendWrap.style.cssText = "display:flex;align-items:center;gap:6px;margin-top:8px;margin-left:38px;";
-if (atendPhotoUrl) {
-  const atendAvatar = document.createElement("img");
-  atendAvatar.src = atendPhotoUrl;
-  atendAvatar.style.cssText = "width:20px;height:20px;border-radius:50%;object-fit:cover;flex-shrink:0;";
-  atendWrap.appendChild(atendAvatar);
-}
-const atendEl = document.createElement("span");
-atendEl.className = "client-atend";
-atendEl.style.cssText = "margin:0;";
-atendEl.textContent = c.atend;
-atendEl.title = "Clique para alterar o atendimento";
+  const atendWrap = document.createElement("div");
+  atendWrap.style.cssText = "display:flex;align-items:center;gap:6px;margin-top:8px;margin-left:38px;";
+  if (atendPhotoUrl) {
+    const atendAvatar = document.createElement("img");
+    atendAvatar.src = atendPhotoUrl;
+    atendAvatar.style.cssText = "width:20px;height:20px;border-radius:50%;object-fit:cover;flex-shrink:0;";
+    atendWrap.appendChild(atendAvatar);
   }
   const atendEl = document.createElement("span");
   atendEl.className = "client-atend";
@@ -418,7 +412,7 @@ atendEl.title = "Clique para alterar o atendimento";
     inp.addEventListener("keydown", e2 => { if (e2.key==="Enter") inp.blur(); e2.stopPropagation(); });
   });
   atendWrap.appendChild(atendEl);
-card.appendChild(atendWrap);
+  card.appendChild(atendWrap);
 
   const tagsRow = document.createElement("div");
   tagsRow.className = "client-tags-row";
