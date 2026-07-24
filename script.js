@@ -382,11 +382,19 @@ function buildClientCard(c, designer, showDesignerBadge) {
   }
 
   const atendPhotoUrl = ATENDIMENTO_PHOTOS[c.atend] || null;
-  if (atendPhotoUrl) {
-    const atendAvatar = document.createElement("img");
-    atendAvatar.src = atendPhotoUrl;
-    atendAvatar.style.cssText = "width:20px;height:20px;border-radius:50%;object-fit:cover;vertical-align:-5px;margin-right:5px;margin-left:38px;";
-    card.appendChild(atendAvatar);
+const atendWrap = document.createElement("div");
+atendWrap.style.cssText = "display:flex;align-items:center;gap:6px;margin-top:8px;margin-left:38px;";
+if (atendPhotoUrl) {
+  const atendAvatar = document.createElement("img");
+  atendAvatar.src = atendPhotoUrl;
+  atendAvatar.style.cssText = "width:20px;height:20px;border-radius:50%;object-fit:cover;flex-shrink:0;";
+  atendWrap.appendChild(atendAvatar);
+}
+const atendEl = document.createElement("span");
+atendEl.className = "client-atend";
+atendEl.style.cssText = "margin:0;";
+atendEl.textContent = c.atend;
+atendEl.title = "Clique para alterar o atendimento";
   }
   const atendEl = document.createElement("span");
   atendEl.className = "client-atend";
@@ -409,7 +417,8 @@ function buildClientCard(c, designer, showDesignerBadge) {
     inp.addEventListener("blur", commit);
     inp.addEventListener("keydown", e2 => { if (e2.key==="Enter") inp.blur(); e2.stopPropagation(); });
   });
-  card.appendChild(atendEl);
+  atendWrap.appendChild(atendEl);
+card.appendChild(atendWrap);
 
   const tagsRow = document.createElement("div");
   tagsRow.className = "client-tags-row";
