@@ -311,3 +311,7 @@ span.tarefas-prazo-pill.tarefas-data-editavel:hover { filter: brightness(0.94); 
 .tarefas-lista-item { transition: opacity .3s ease, transform .3s ease, max-height .3s ease, margin .3s ease, padding .3s ease; overflow: hidden; }
 .tarefas-lista-item-processando { opacity: .5; pointer-events: none; }
 .tarefas-lista-item-saindo { opacity: 0; transform: translateX(12px); max-height: 0; margin-bottom: 0; padding-top: 0; padding-bottom: 0; }
+
+/* ===== Data de Publicação (campo separado da Entrega Desejada, vindo do Runrun.it) ===== */
+.tarefas-data-publicacao { font-size: 9.5px; font-weight: 600; color: #6B3FA0; display: flex; align-items: center; gap: 3px; margin-top: 2px; }
+.tarefas-badge-publicacao { background: #F3EEFB; color: #6B3FA0; display: inline-flex; align-items: center; gap: 3px; }
