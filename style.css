@@ -240,9 +240,35 @@
   }
 
 /* ===== Editar tarefa direto no Runrun.it (trocar data / mover pra Prioridades) ===== */
+.tarefas-data-wrap { display: flex; flex-direction: column; align-items: flex-end; gap: 1px; }
+.tarefas-data-label { font-size: 8.5px; font-weight: 700; color: #a3a091; text-transform: uppercase; letter-spacing: .03em; }
 .tarefas-data-editavel { cursor: pointer; border-bottom: 1px dashed #a3a091; }
 .tarefas-data-editavel:hover { color: #0000FB; border-color: #0000FB; }
-.tarefas-data-input { font-size: 11px; font-family: inherit; border: 1px solid #0000FB; border-radius: 6px; padding: 3px 6px; color: #1a1a18; }
 .tarefas-mover-btn { font-size: 10.5px; font-weight: 600; padding: 5px 10px; border-radius: 8px; border: 1px solid #0000FB; background: #fff; color: #0000FB; cursor: pointer; white-space: nowrap; transition: background .15s, color .15s; }
 .tarefas-mover-btn:hover { background: #0000FB; color: #fff; }
 .tarefas-mover-btn:disabled { opacity: .6; cursor: default; }
+
+/* ===== Calendário flutuante (trocar a data de uma tarefa) ===== */
+.data-picker-panel {
+  position: absolute;
+  z-index: 200;
+  width: 240px;
+  background: #fff;
+  border-radius: 14px;
+  box-shadow: 0 8px 24px rgba(20,20,18,0.18);
+  border: 1px solid #f1efe8;
+  padding: 12px;
+  font-family: 'Inter', sans-serif;
+}
+.data-picker-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.data-picker-mes { font-size: 12.5px; font-weight: 600; color: #1a1a18; }
+.data-picker-nav { width: 24px; height: 24px; border-radius: 50%; border: none; background: #F3F3F1; color: #55534c; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 13px; }
+.data-picker-nav:hover { background: #E6F1FB; color: #0000FB; }
+.data-picker-semana { display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; font-size: 10px; font-weight: 600; color: #a3a091; margin-bottom: 4px; }
+.data-picker-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
+.data-picker-dia { width: 28px; height: 28px; border-radius: 50%; border: none; background: none; font-size: 11.5px; color: #1a1a18; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+.data-picker-dia:hover { background: #F3F3F1; }
+.data-picker-dia.hoje { font-weight: 700; color: #0000FB; }
+.data-picker-dia.selecionado { background: #0000FB; color: #fff; font-weight: 600; }
+.data-picker-dia.selecionado:hover { background: #0000FB; }
+.data-picker-dia.vazio { cursor: default; }
