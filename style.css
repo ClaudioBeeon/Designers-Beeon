@@ -309,4 +309,5 @@ span.tarefas-prazo-pill.tarefas-data-editavel:hover { filter: brightness(0.94); 
 }
 .pill-atualizado { animation: piscarPill .6s ease-out; }
 .tarefas-lista-item { transition: opacity .3s ease, transform .3s ease, max-height .3s ease, margin .3s ease, padding .3s ease; overflow: hidden; }
+.tarefas-lista-item-processando { opacity: .5; pointer-events: none; }
 .tarefas-lista-item-saindo { opacity: 0; transform: translateX(12px); max-height: 0; margin-bottom: 0; padding-top: 0; padding-bottom: 0; }
