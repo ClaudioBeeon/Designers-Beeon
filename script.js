@@ -1441,63 +1441,47 @@ function aplicarNovaEtapaNaTela(taskId, novaEtapa) {
   });
 }
 
-// Tira a tarefa de esforcoHojeTarefas/esforcoHojePorDesigner na hora (sem esperar o
-// servidor), pra o total e a quantidade "debaixo do nome" já descerem na hora.
-function removerTarefaDoEsforco(taskId) {
-  Object.keys(esforcoHojeTarefas).forEach(nome => {
-    const lista = esforcoHojeTarefas[nome] || [];
-    const idx = lista.findIndex(t => t.id === taskId);
-    if (idx === -1) return;
-    const [removida] = lista.splice(idx, 1);
-    esforcoHojePorDesigner[nome] = Math.max(0, (esforcoHojePorDesigner[nome] || 0) - (removida.estimativaMin || 0));
-  });
+// Verifica se uma tarefa ainda está na lista carregada de Esforço de hoje.
+function encontrarTarefaEmEsforco(taskId) {
+  return Object.keys(esforcoHojeTarefas).some(nome => (esforcoHojeTarefas[nome] || []).some(t => t.id === taskId));
 }
 
 async function salvarNovaData(taskId, novaData, ancoraEl) {
-  const hojeISO = new Date().toLocaleDateString("sv-SE");
-
   // 1) Atualiza a tela NA HORA (pill + cor), sem esperar o servidor.
   aplicarEstiloDataNosPills(taskId, novaData);
 
-  // 2) Se estiver no Esforço de hoje e a nova data for futura, essa tarefa não entra
-  // mais no esforço — some o card com animação depois de 1s, e já desconta do total.
   const estaNoEsforco = tarefasModalTipo === "geral" && tarefasModalChave === "esforco";
-  const vaiSairDoEsforco = estaNoEsforco && novaData > hojeISO;
-  const card = vaiSairDoEsforco ? ancoraEl.closest(".tarefas-lista-item") : null;
-  let timeoutSumir = null, timeoutRemover = null;
-  if (card) {
-    timeoutSumir = setTimeout(() => {
-      card.classList.add("tarefas-lista-item-saindo");
-      timeoutRemover = setTimeout(() => {
-        card.remove();
-        removerTarefaDoEsforco(taskId);
-        renderTarefasModal(); // já recalcula o total do time e a quantidade de cada designer
-      }, 300);
-    }, 1000);
-  }
+  const card = estaNoEsforco ? ancoraEl.closest(".tarefas-lista-item") : null;
+  if (card) card.classList.add("tarefas-lista-item-processando"); // fica meio apagado enquanto confirma
 
-  // 3) Chama o Runrun.it em segundo plano — a tela já foi atualizada, não espera aqui.
+  // 2) Chama o Runrun.it. IMPORTANTE: só decidimos se o card sai do Esforço de hoje
+  // DEPOIS de saber a resposta real — porque o Runrun.it pode manter uma tarefa no
+  // esforço de hoje mesmo com a Entrega Desejada no futuro, se o planejamento (Gantt)
+  // dele ainda cobrir hoje. Adivinhar isso só pela data (como eu tinha feito antes)
+  // fazia o card sumir na hora só pra "voltar" quando você reabria o pop-up, porque
+  // o total de verdade nunca tinha mudado.
   const resultado = await chamarAcaoRunrun("trocarDataRunrun", { taskId, novaData });
 
   if (!resultado.ok) {
-    // Deu errado: cancela qualquer animação pendente e recarrega os dados de
-    // verdade do servidor (que ainda tem a data antiga) — a tarefa volta sozinha.
-    clearTimeout(timeoutSumir);
-    clearTimeout(timeoutRemover);
+    if (card) card.classList.remove("tarefas-lista-item-processando");
     alert("Não consegui trocar a data dessa tarefa — ela foi restaurada: " + (resultado.error || "erro desconhecido"));
     await loadRunrunAtividades();
     renderTarefasModal();
     return;
   }
 
-  // Deu certo — atualiza o resto do painel em segundo plano. Se não tinha uma
-  // animação de saída em andamento aqui (outras abas, ou tarefa que continua no
-  // Esforço), atualiza o pop-up assim que os dados voltarem; se já tinha, quem
-  // cuida do re-render é a própria animação, lá em cima.
-  if (!card) {
-    loadRunrunAtividades().then(() => renderTarefasModal());
+  // 3) Busca os números de verdade, já recalculados pelo servidor.
+  await loadRunrunAtividades();
+
+  if (card && !encontrarTarefaEmEsforco(taskId)) {
+    // Confirmado: saiu mesmo do Esforço de hoje. Anima o card sumindo e só então
+    // redesenha o total do time e a quantidade de cada designer.
+    card.classList.remove("tarefas-lista-item-processando");
+    card.classList.add("tarefas-lista-item-saindo");
+    setTimeout(() => renderTarefasModal(), 300);
   } else {
-    loadRunrunAtividades();
+    // Continua no Esforço de hoje (ou não estava nessa aba) — só atualiza tudo.
+    renderTarefasModal();
   }
 }
 
