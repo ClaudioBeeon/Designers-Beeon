@@ -1259,6 +1259,13 @@ function renderDataEditavelHtml(t) {
   `;
 }
 
+// Mesma data (Entrega Desejada), só que numa caixinha igual à do tempo estimado —
+// usado no Esforço de hoje, onde a data é a mesma usada pra calcular o esforço.
+function renderDataPillHtml(t) {
+  if (!t.id || !t.data) return `<span class="tarefas-prazo-pill" style="background:#F1EFE8;color:#78766e;">Sem data</span>`;
+  return `<span class="tarefas-prazo-pill tarefas-data-editavel" style="background:#EEF6E7;color:#5A9A34;" title="Clique pra trocar a Entrega Desejada" onclick="abrirEdicaoData(${t.id}, '${t.data}', this)">${formatDataPorExtenso(t.data)}</span>`;
+}
+
 // Monta o botão "Mover p/ Prioridades" — só aparece se a tarefa estiver em Pendentes.
 function renderBotaoMoverPrioridadeHtml(t) {
   if (!t.id || t.status !== "Pendentes") return "";
@@ -1434,7 +1441,7 @@ function renderEsforcoRow(t, designer) {
         </div>
       </div>
       <div class="tarefas-lista-item-right">
-        ${renderDataEditavelHtml(t)}
+        ${renderDataPillHtml(t)}
         <span class="tarefas-prazo-pill" style="background:#EEF6E7;color:#5A9A34;">${formatTempo(t.estimativaMin)}</span>
         ${renderBotaoMoverPrioridadeHtml(t)}
         <a class="tarefas-lista-item-link" href="${t.link}" target="_blank" rel="noopener" title="Abrir no Runrun.it"><i class="ti ti-external-link"></i></a>
