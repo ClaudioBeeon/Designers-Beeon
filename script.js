@@ -2072,42 +2072,65 @@ function desenharConfigClientes() {
     </div>
   `;
 
-  const vinculosAgrupados = {}; // nome do painel (canônico) -> lista de nomes ligados a ele
-  d.vinculos.forEach(v => {
-    if (!vinculosAgrupados[v.canonico]) vinculosAgrupados[v.canonico] = [];
-    vinculosAgrupados[v.canonico].push(v.origem);
+  // Junta TODOS os clientes (painel + Runrun.it + Drive) num grupo por identidade —
+  // ou porque foram linkados manualmente, ou porque o nome já bate automaticamente
+  // (mesmo nome ignorando maiúscula/acento/hífen). Mostra todo mundo, não só quem
+  // precisou de vínculo manual.
+  const vinculoPorOrigemNorm = {};
+  d.vinculos.forEach(v => { vinculoPorOrigemNorm[normalizarParaComparar(v.origem)] = v.canonico; });
+
+  const todos = [
+    ...d.painel.map(nome => ({ nome, origem: "painel" })),
+    ...d.runrun.map(nome => ({ nome, origem: "runrun" })),
+    ...d.drive.map(nome => ({ nome, origem: "drive" }))
+  ];
+
+  const grupos = {}; // chave normalizada -> { nomeExibicao, painel: [], runrun: [], drive: [] }
+  todos.forEach(({ nome, origem }) => {
+    const canonicoManual = vinculoPorOrigemNorm[normalizarParaComparar(nome)];
+    const chave = normalizarParaComparar(canonicoManual || nome);
+    if (!grupos[chave]) grupos[chave] = { nomeExibicao: canonicoManual || nome, painel: [], runrun: [], drive: [] };
+    // Prefere o nome do painel como nome de exibição do grupo, quando existir.
+    if (origem === "painel" && !canonicoManual) grupos[chave].nomeExibicao = nome;
+    grupos[chave][origem].push(nome);
   });
-  const nomesCanonicos = Object.keys(vinculosAgrupados).sort();
+
+  const chavesOrdenadas = Object.keys(grupos).sort((a, b) => grupos[a].nomeExibicao.localeCompare(grupos[b].nomeExibicao));
 
   const colunaVinculadosHtml = `
     <div class="config-coluna config-coluna-vinculados">
-      <div class="config-coluna-titulo"><i class="ti ti-link"></i> Vinculados <span class="config-coluna-qtd">${nomesCanonicos.length}</span></div>
+      <div class="config-coluna-titulo"><i class="ti ti-link"></i> Todos os clientes <span class="config-coluna-qtd">${chavesOrdenadas.length}</span></div>
       <div class="config-coluna-lista">
-        ${nomesCanonicos.length ? nomesCanonicos.map(canonico => {
-          const aberto = !!configGruposAbertos[canonico];
-          const origens = vinculosAgrupados[canonico];
+        ${chavesOrdenadas.length ? chavesOrdenadas.map(chave => {
+          const grupo = grupos[chave];
+          const aberto = !!configGruposAbertos[chave];
+          const totalFontes = (grupo.painel.length ? 1 : 0) + (grupo.runrun.length ? 1 : 0) + (grupo.drive.length ? 1 : 0);
+          const totalNomes = grupo.painel.length + grupo.runrun.length + grupo.drive.length;
+          const linhaFonte = (label, lista) => lista.length ? lista.map(nome => `
+            <div class="config-vinculo-item">
+              <span><span class="config-vinculo-fonte">${label}</span> ${nome}</span>
+              ${vinculoPorOrigemNorm[normalizarParaComparar(nome)] ? `<button type="button" class="mini-icon-btn" title="Desvincular" onclick="desvincularClienteConfig('${nome.replace(/'/g, "\\'")}')"><i class="ti ti-unlink"></i></button>` : ""}
+            </div>
+          `).join("") : "";
           return `
-            <div class="config-vinculo-grupo">
-              <button type="button" class="config-vinculo-cabecalho" onclick="toggleGrupoVinculado('${canonico.replace(/'/g, "\\'")}')">
-                <span>${canonico}</span>
+            <div class="config-vinculo-grupo${totalFontes < 2 ? " config-vinculo-grupo-solto" : ""}">
+              <button type="button" class="config-vinculo-cabecalho" onclick="toggleGrupoVinculado('${chave.replace(/'/g, "\\'")}')">
+                <span>${grupo.nomeExibicao}${totalFontes < 2 ? '<span class="config-vinculo-tag-solto">só aqui</span>' : ""}</span>
                 <span class="config-vinculo-cabecalho-direita">
-                  <span class="config-coluna-qtd">${origens.length}</span>
+                  <span class="config-coluna-qtd">${totalNomes}</span>
                   <i class="ti ti-chevron-down config-vinculo-seta${aberto ? " aberta" : ""}"></i>
                 </span>
               </button>
               ${aberto ? `
                 <div class="config-vinculo-corpo">
-                  ${origens.map(origem => `
-                    <div class="config-vinculo-item">
-                      <span>${origem}</span>
-                      <button type="button" class="mini-icon-btn" title="Desvincular" onclick="desvincularClienteConfig('${origem.replace(/'/g, "\\'")}')"><i class="ti ti-unlink"></i></button>
-                    </div>
-                  `).join("")}
+                  ${linhaFonte("Painel", grupo.painel)}
+                  ${linhaFonte("Runrun.it", grupo.runrun)}
+                  ${linhaFonte("Drive", grupo.drive)}
                 </div>
               ` : ""}
             </div>
           `;
-        }).join("") : `<div class="config-vazio">Nenhum vínculo ainda. Selecione nomes nas colunas ao lado e clique em "Linkar".</div>`}
+        }).join("") : `<div class="config-vazio">Nenhum cliente encontrado.</div>`}
       </div>
     </div>
   `;
@@ -2169,7 +2192,7 @@ async function linkarClientesSelecionados() {
     return;
   }
   configMensagem = { tipo: "sucesso", texto: `Vinculado! ${nomes.join(" + ")} agora são o mesmo cliente (${resultado.canonico}).` };
-  configGruposAbertos[resultado.canonico] = true; // já abre o grupo pra confirmar visualmente
+  configGruposAbertos[normalizarParaComparar(resultado.canonico)] = true; // já abre o grupo pra confirmar visualmente
   await renderConfigClientesMantendoAviso();
 }
 
