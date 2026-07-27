@@ -238,3 +238,11 @@
     .search-bar { width: 160px; }
     .search-bar span { display: none; }
   }
+
+/* ===== Editar tarefa direto no Runrun.it (trocar data / mover pra Prioridades) ===== */
+.tarefas-data-editavel { cursor: pointer; border-bottom: 1px dashed #a3a091; }
+.tarefas-data-editavel:hover { color: #0000FB; border-color: #0000FB; }
+.tarefas-data-input { font-size: 11px; font-family: inherit; border: 1px solid #0000FB; border-radius: 6px; padding: 3px 6px; color: #1a1a18; }
+.tarefas-mover-btn { font-size: 10.5px; font-weight: 600; padding: 5px 10px; border-radius: 8px; border: 1px solid #0000FB; background: #fff; color: #0000FB; cursor: pointer; white-space: nowrap; transition: background .15s, color .15s; }
+.tarefas-mover-btn:hover { background: #0000FB; color: #fff; }
+.tarefas-mover-btn:disabled { opacity: .6; cursor: default; }
