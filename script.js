@@ -2059,18 +2059,35 @@ function desenharConfigClientes() {
   }
   const d = configClientesDados;
 
-  const colunaHtml = (titulo, icone, nomes) => `
-    <div class="config-coluna">
-      <div class="config-coluna-titulo"><i class="ti ${icone}"></i> ${titulo} <span class="config-coluna-qtd">${nomes.length}</span></div>
-      <div class="config-coluna-lista">
-        ${nomes.length ? nomes.map(nome => `
-          <button type="button" class="config-chip${chipSelecionadoClass(nome)}${jaEstaVinculado(nome) ? " ja-vinculado" : ""}" onclick="toggleSelecaoConfig('${nome.replace(/'/g, "\\'")}')">
-            ${jaEstaVinculado(nome) ? '<i class="ti ti-link"></i> ' : ""}${nome}
-          </button>
-        `).join("") : `<div class="config-vazio">Nenhum cliente encontrado aqui.</div>`}
-      </div>
-    </div>
+  // Guarda a rolagem de cada coluna antes de redesenhar (a ordem das colunas não
+  // muda, então dá pra devolver pelo índice depois de recriar o HTML).
+  const scrollsAntigos = Array.from(container.querySelectorAll(".config-coluna-lista")).map(el => el.scrollTop);
+
+  const chipHtml = nome => `
+    <button type="button" class="config-chip${chipSelecionadoClass(nome)}${jaEstaVinculado(nome) ? " ja-vinculado" : ""}" onclick="toggleSelecaoConfig('${nome.replace(/'/g, "\\'")}')">
+      ${jaEstaVinculado(nome) ? '<i class="ti ti-link"></i> ' : ""}${nome}
+    </button>
   `;
+
+  const colunaHtml = (titulo, icone, nomes) => {
+    const naoVinculados = nomes.filter(n => !jaEstaVinculado(n));
+    const vinculados = nomes.filter(n => jaEstaVinculado(n));
+    return `
+      <div class="config-coluna">
+        <div class="config-coluna-titulo"><i class="ti ${icone}"></i> ${titulo} <span class="config-coluna-qtd">${nomes.length}</span></div>
+        <div class="config-coluna-lista">
+          ${!nomes.length ? `<div class="config-vazio">Nenhum cliente encontrado aqui.</div>` : ""}
+          ${naoVinculados.map(chipHtml).join("")}
+          ${vinculados.length ? `
+            <div class="config-secao-linkados">
+              <div class="config-secao-linkados-titulo">Linkados</div>
+              ${vinculados.map(chipHtml).join("")}
+            </div>
+          ` : ""}
+        </div>
+      </div>
+    `;
+  };
 
   // Junta TODOS os clientes (painel + Runrun.it + Drive) num grupo por identidade —
   // ou porque foram linkados manualmente, ou porque o nome já bate automaticamente
@@ -2157,6 +2174,11 @@ function desenharConfigClientes() {
       <button type="button" class="btn" onclick="limparSelecaoConfig()">Limpar seleção</button>
     </div>
   `;
+
+  // Devolve a rolagem de cada coluna pro lugar onde estava.
+  Array.from(container.querySelectorAll(".config-coluna-lista")).forEach((el, i) => {
+    if (scrollsAntigos[i]) el.scrollTop = scrollsAntigos[i];
+  });
 
   if (configMensagem) {
     configMensagem = null; // já mostrou, some sozinho em seguida
