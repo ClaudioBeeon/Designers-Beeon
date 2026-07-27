@@ -19,6 +19,7 @@
     <button class="sb-item" data-page="clientes" onclick="switchPage('clientes')"><i class="ti ti-address-book"></i><span>Clientes</span></button>
   </div>
   <div class="sidebar-bottom">
+    <button class="sb-item" data-page="config" onclick="switchPage('config')"><i class="ti ti-settings"></i><span>Configurações</span></button>
   </div>
 </div>
 
@@ -139,6 +140,11 @@
       </div>
     </div>
     <div class="designers-grid" id="clientes-grid" style="grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); align-items: stretch;"></div>
+  </div>
+
+  <div class="page" id="page-config">
+    <div class="section-title"><span>Vincular clientes duplicados</span></div>
+    <div id="config-clientes-container"></div>
   </div>
 
 
