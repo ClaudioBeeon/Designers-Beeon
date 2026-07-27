@@ -2022,6 +2022,8 @@ function renderDriveActivity(atividades) {
 
 let configClientesDados = null; // { painel, runrun, drive, driveErro, vinculos }
 let configSelecionados = []; // nomes selecionados nessa passada, pra linkar
+let configMensagem = null; // { tipo: "sucesso"|"erro", texto } — aviso temporário no topo da página
+let configGruposAbertos = {}; // canonico -> true/false, controla quais grupos da coluna "Vinculados" estão abertos
 
 async function renderConfigClientes() {
   const container = document.getElementById("config-clientes-container");
@@ -2070,25 +2072,60 @@ function desenharConfigClientes() {
     </div>
   `;
 
-  const vinculosHtml = d.vinculos.length ? `
-    <div class="config-vinculos-existentes">
-      <div class="config-coluna-titulo"><i class="ti ti-link"></i> Já vinculados</div>
-      ${d.vinculos.map(v => `
-        <div class="config-vinculo-item">
-          <span><strong>${v.origem}</strong> → ${v.canonico}</span>
-          <button type="button" class="mini-icon-btn" title="Desvincular" onclick="desvincularClienteConfig('${v.origem.replace(/'/g, "\\'")}')"><i class="ti ti-unlink"></i></button>
-        </div>
-      `).join("")}
+  const vinculosAgrupados = {}; // nome do painel (canônico) -> lista de nomes ligados a ele
+  d.vinculos.forEach(v => {
+    if (!vinculosAgrupados[v.canonico]) vinculosAgrupados[v.canonico] = [];
+    vinculosAgrupados[v.canonico].push(v.origem);
+  });
+  const nomesCanonicos = Object.keys(vinculosAgrupados).sort();
+
+  const colunaVinculadosHtml = `
+    <div class="config-coluna config-coluna-vinculados">
+      <div class="config-coluna-titulo"><i class="ti ti-link"></i> Vinculados <span class="config-coluna-qtd">${nomesCanonicos.length}</span></div>
+      <div class="config-coluna-lista">
+        ${nomesCanonicos.length ? nomesCanonicos.map(canonico => {
+          const aberto = !!configGruposAbertos[canonico];
+          const origens = vinculosAgrupados[canonico];
+          return `
+            <div class="config-vinculo-grupo">
+              <button type="button" class="config-vinculo-cabecalho" onclick="toggleGrupoVinculado('${canonico.replace(/'/g, "\\'")}')">
+                <span>${canonico}</span>
+                <span class="config-vinculo-cabecalho-direita">
+                  <span class="config-coluna-qtd">${origens.length}</span>
+                  <i class="ti ti-chevron-down config-vinculo-seta${aberto ? " aberta" : ""}"></i>
+                </span>
+              </button>
+              ${aberto ? `
+                <div class="config-vinculo-corpo">
+                  ${origens.map(origem => `
+                    <div class="config-vinculo-item">
+                      <span>${origem}</span>
+                      <button type="button" class="mini-icon-btn" title="Desvincular" onclick="desvincularClienteConfig('${origem.replace(/'/g, "\\'")}')"><i class="ti ti-unlink"></i></button>
+                    </div>
+                  `).join("")}
+                </div>
+              ` : ""}
+            </div>
+          `;
+        }).join("") : `<div class="config-vazio">Nenhum vínculo ainda. Selecione nomes nas colunas ao lado e clique em "Linkar".</div>`}
+      </div>
+    </div>
+  `;
+
+  const avisoHtml = configMensagem ? `
+    <div class="config-aviso config-aviso-${configMensagem.tipo}" id="config-aviso">
+      <i class="ti ${configMensagem.tipo === "sucesso" ? "ti-circle-check" : "ti-alert-circle"}"></i> ${configMensagem.texto}
     </div>
   ` : "";
 
   container.innerHTML = `
-    <p class="config-explicacao">Selecione os nomes que são o mesmo cliente (pode escolher um de cada coluna, ou vários da mesma) e clique em "Linkar selecionados".</p>
-    ${vinculosHtml}
+    ${avisoHtml}
+    <p class="config-explicacao">Selecione os nomes que são o mesmo cliente (pode escolher um de cada coluna, ou vários da mesma) e clique em "Linkar selecionados". Na coluna "Vinculados", clique no nome pra abrir e ver o que está ligado a ele.</p>
     <div class="config-colunas">
       ${colunaHtml("No painel", "ti-layout-columns", d.painel)}
       ${colunaHtml("No Runrun.it", "ti-checkbox", d.runrun)}
       ${colunaHtml("No Drive", "ti-folder", d.drive)}
+      ${colunaVinculadosHtml}
     </div>
     ${d.driveErro ? `<p class="config-erro">Drive: ${d.driveErro}</p>` : ""}
     <div class="config-barra-acao${configSelecionados.length >= 2 ? " visivel" : ""}">
@@ -2097,6 +2134,17 @@ function desenharConfigClientes() {
       <button type="button" class="btn" onclick="limparSelecaoConfig()">Limpar seleção</button>
     </div>
   `;
+
+  if (configMensagem) {
+    configMensagem = null; // já mostrou, some sozinho em seguida
+    const avisoEl = document.getElementById("config-aviso");
+    if (avisoEl) setTimeout(() => avisoEl.classList.add("sumindo"), 3000);
+  }
+}
+
+function toggleGrupoVinculado(canonico) {
+  configGruposAbertos[canonico] = !configGruposAbertos[canonico];
+  desenharConfigClientes();
 }
 
 function toggleSelecaoConfig(nome) {
@@ -2116,17 +2164,39 @@ async function linkarClientesSelecionados() {
   const nomes = [...configSelecionados];
   const resultado = await chamarAcaoRunrun("linkarClientes", { nomes });
   if (!resultado.ok) {
-    alert("Não consegui linkar esses clientes: " + (resultado.error || "erro desconhecido"));
+    configMensagem = { tipo: "erro", texto: "Não consegui linkar esses clientes: " + (resultado.error || "erro desconhecido") };
+    desenharConfigClientes();
     return;
   }
-  await renderConfigClientes();
+  configMensagem = { tipo: "sucesso", texto: `Vinculado! ${nomes.join(" + ")} agora são o mesmo cliente (${resultado.canonico}).` };
+  configGruposAbertos[resultado.canonico] = true; // já abre o grupo pra confirmar visualmente
+  await renderConfigClientesMantendoAviso();
 }
 
 async function desvincularClienteConfig(nomeOrigem) {
   const resultado = await chamarAcaoRunrun("desvincularCliente", { nomeOrigem });
   if (!resultado.ok) {
-    alert("Não consegui desvincular: " + (resultado.error || "erro desconhecido"));
+    configMensagem = { tipo: "erro", texto: "Não consegui desvincular: " + (resultado.error || "erro desconhecido") };
+    desenharConfigClientes();
     return;
   }
-  await renderConfigClientes();
+  configMensagem = { tipo: "sucesso", texto: `"${nomeOrigem}" foi desvinculado.` };
+  await renderConfigClientesMantendoAviso();
+}
+
+// Igual ao renderConfigClientes, mas sem apagar o aviso que acabou de ser
+// definido (renderConfigClientes normal reseta tudo, inclusive a mensagem).
+async function renderConfigClientesMantendoAviso() {
+  const avisoPendente = configMensagem;
+  try {
+    const res = await fetch(WEBAPP_URL + "?tipo=configClientes", { method: "GET" });
+    configClientesDados = await res.json();
+  } catch (err) {
+    configMensagem = { tipo: "erro", texto: "Vinculei, mas não consegui recarregar a lista: " + err.message };
+    desenharConfigClientes();
+    return;
+  }
+  configSelecionados = [];
+  configMensagem = avisoPendente;
+  desenharConfigClientes();
 }
