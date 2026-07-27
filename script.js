@@ -73,7 +73,8 @@ const PAGE_SUBTITLES = {
   designers: "Clientes por designer",
   atendimento: "Clientes por atendimento",
   servico: "Clientes por serviço",
-  clientes: "Todos os clientes"
+  clientes: "Todos os clientes",
+  config: "Vincular clientes duplicados"
 };
 
 function switchPage(page) {
@@ -85,6 +86,7 @@ function switchPage(page) {
   if (page === "atendimento") renderAtendimento();
   if (page === "servico") renderServico();
   if (page === "clientes") renderClientesPage();
+  if (page === "config") renderConfigClientes();
 }
 
 const SERVICOS_PREDEFINIDOS = [
@@ -2011,4 +2013,120 @@ function renderDriveActivity(atividades) {
       </div>
     `;
   }).join("");
+}
+
+// ============ CONFIGURAÇÕES — VINCULAR CLIENTES DUPLICADOS ============
+// Junta os clientes que aparecem no painel, no Runrun.it e no Drive, e deixa
+// selecionar vários (de fontes diferentes) e linkar como sendo o mesmo cliente
+// — útil quando o mesmo cliente tem nomes escritos diferente em cada lugar.
+
+let configClientesDados = null; // { painel, runrun, drive, driveErro, vinculos }
+let configSelecionados = []; // nomes selecionados nessa passada, pra linkar
+
+async function renderConfigClientes() {
+  const container = document.getElementById("config-clientes-container");
+  container.innerHTML = `<div class="config-loading"><div class="loading-spin"></div> Carregando clientes do painel, Runrun.it e Drive...</div>`;
+
+  try {
+    const res = await fetch(WEBAPP_URL + "?tipo=configClientes", { method: "GET" });
+    configClientesDados = await res.json();
+  } catch (err) {
+    container.innerHTML = `<div class="config-erro">Não consegui carregar os clientes: ${err.message}</div>`;
+    return;
+  }
+
+  configSelecionados = [];
+  desenharConfigClientes();
+}
+
+function jaEstaVinculado(nome) {
+  if (!configClientesDados) return false;
+  const alvo = normalizarParaComparar(nome);
+  return configClientesDados.vinculos.some(v => normalizarParaComparar(v.origem) === alvo || normalizarParaComparar(v.canonico) === alvo);
+}
+
+function chipSelecionadoClass(nome) {
+  return configSelecionados.includes(nome) ? " selecionado" : "";
+}
+
+function desenharConfigClientes() {
+  const container = document.getElementById("config-clientes-container");
+  if (!configClientesDados || !configClientesDados.ok) {
+    container.innerHTML = `<div class="config-erro">Não consegui carregar os clientes.</div>`;
+    return;
+  }
+  const d = configClientesDados;
+
+  const colunaHtml = (titulo, icone, nomes) => `
+    <div class="config-coluna">
+      <div class="config-coluna-titulo"><i class="ti ${icone}"></i> ${titulo} <span class="config-coluna-qtd">${nomes.length}</span></div>
+      <div class="config-coluna-lista">
+        ${nomes.length ? nomes.map(nome => `
+          <button type="button" class="config-chip${chipSelecionadoClass(nome)}${jaEstaVinculado(nome) ? " ja-vinculado" : ""}" onclick="toggleSelecaoConfig('${nome.replace(/'/g, "\\'")}')">
+            ${jaEstaVinculado(nome) ? '<i class="ti ti-link"></i> ' : ""}${nome}
+          </button>
+        `).join("") : `<div class="config-vazio">Nenhum cliente encontrado aqui.</div>`}
+      </div>
+    </div>
+  `;
+
+  const vinculosHtml = d.vinculos.length ? `
+    <div class="config-vinculos-existentes">
+      <div class="config-coluna-titulo"><i class="ti ti-link"></i> Já vinculados</div>
+      ${d.vinculos.map(v => `
+        <div class="config-vinculo-item">
+          <span><strong>${v.origem}</strong> → ${v.canonico}</span>
+          <button type="button" class="mini-icon-btn" title="Desvincular" onclick="desvincularClienteConfig('${v.origem.replace(/'/g, "\\'")}')"><i class="ti ti-unlink"></i></button>
+        </div>
+      `).join("")}
+    </div>
+  ` : "";
+
+  container.innerHTML = `
+    <p class="config-explicacao">Selecione os nomes que são o mesmo cliente (pode escolher um de cada coluna, ou vários da mesma) e clique em "Linkar selecionados".</p>
+    ${vinculosHtml}
+    <div class="config-colunas">
+      ${colunaHtml("No painel", "ti-layout-columns", d.painel)}
+      ${colunaHtml("No Runrun.it", "ti-checkbox", d.runrun)}
+      ${colunaHtml("No Drive", "ti-folder", d.drive)}
+    </div>
+    ${d.driveErro ? `<p class="config-erro">Drive: ${d.driveErro}</p>` : ""}
+    <div class="config-barra-acao${configSelecionados.length >= 2 ? " visivel" : ""}">
+      <span>${configSelecionados.length} selecionado(s)</span>
+      <button type="button" class="btn btn-primary" onclick="linkarClientesSelecionados()"><i class="ti ti-link"></i> Linkar selecionados</button>
+      <button type="button" class="btn" onclick="limparSelecaoConfig()">Limpar seleção</button>
+    </div>
+  `;
+}
+
+function toggleSelecaoConfig(nome) {
+  const idx = configSelecionados.indexOf(nome);
+  if (idx === -1) configSelecionados.push(nome);
+  else configSelecionados.splice(idx, 1);
+  desenharConfigClientes();
+}
+
+function limparSelecaoConfig() {
+  configSelecionados = [];
+  desenharConfigClientes();
+}
+
+async function linkarClientesSelecionados() {
+  if (configSelecionados.length < 2) return;
+  const nomes = [...configSelecionados];
+  const resultado = await chamarAcaoRunrun("linkarClientes", { nomes });
+  if (!resultado.ok) {
+    alert("Não consegui linkar esses clientes: " + (resultado.error || "erro desconhecido"));
+    return;
+  }
+  await renderConfigClientes();
+}
+
+async function desvincularClienteConfig(nomeOrigem) {
+  const resultado = await chamarAcaoRunrun("desvincularCliente", { nomeOrigem });
+  if (!resultado.ok) {
+    alert("Não consegui desvincular: " + (resultado.error || "erro desconhecido"));
+    return;
+  }
+  await renderConfigClientes();
 }
