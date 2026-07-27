@@ -1276,11 +1276,19 @@ function renderDataEditavelHtml(t) {
   `;
 }
 
+// Cor do pill da data no Esforço de hoje: vermelho se está atrasada, verde se é pra hoje.
+function estiloDataEsforco(dataIso) {
+  const hojeISO = new Date().toLocaleDateString("sv-SE");
+  if (dataIso && dataIso < hojeISO) return { bg: "#FCE9EE", fg: "#C0396B" }; // atrasada
+  return { bg: "#EEF6E7", fg: "#5A9A34" }; // hoje (ou futura, caso raro)
+}
+
 // Mesma data (Entrega Desejada), só que numa caixinha igual à do tempo estimado —
 // usado no Esforço de hoje, onde a data é a mesma usada pra calcular o esforço.
 function renderDataPillHtml(t) {
   if (!t.id || !t.data) return `<span class="tarefas-prazo-pill tarefas-pill-largura" style="background:#F1EFE8;color:#78766e;">Sem data</span>`;
-  return `<span class="tarefas-prazo-pill tarefas-pill-largura tarefas-data-editavel" data-task-id="${t.id}" style="background:#EEF6E7;color:#5A9A34;" title="Clique pra trocar a Entrega Desejada" onclick="abrirEdicaoData(${t.id}, '${t.data}', this)">${formatDataPorExtenso(t.data)}</span>`;
+  const estilo = estiloDataEsforco(t.data);
+  return `<span class="tarefas-prazo-pill tarefas-pill-largura tarefas-data-editavel" data-task-id="${t.id}" style="background:${estilo.bg};color:${estilo.fg};" title="Clique pra trocar a Entrega Desejada" onclick="abrirEdicaoData(${t.id}, '${t.data}', this)">${formatDataPorExtenso(t.data)}</span>`;
 }
 
 // Pill que mostra a etapa/aba atual da tarefa no Runrun.it (Pendentes, Prioridades,
@@ -1377,8 +1385,7 @@ function abrirEdicaoData(taskId, dataAtual, ancoraEl) {
       btn.onclick = () => {
         const isoEscolhido = btn.dataset.iso;
         fecharPainelFlutuante();
-        aplicarNovaDataNaTela(taskId, isoEscolhido, ancoraEl);
-        salvarNovaData(taskId, isoEscolhido);
+        salvarNovaData(taskId, isoEscolhido, ancoraEl);
       };
     });
   }
@@ -1399,38 +1406,30 @@ function abrirSeletorEtapa(taskId, etapaAtual, ancoraEl) {
       const etapaEscolhida = ETAPAS_MOVIVEIS.find(e => e.chave === chaveEscolhida);
       fecharPainelFlutuante();
       if (etapaEscolhida.label === etapaAtual) return;
-      aplicarNovaEtapaNaTela(taskId, etapaEscolhida.label, ancoraEl);
+      aplicarNovaEtapaNaTela(taskId, etapaEscolhida.label);
       moverEtapaTarefa(taskId, chaveEscolhida);
     };
   });
 }
 
-// Atualiza o pill da data NA HORA (sem esperar o servidor responder), com uma
-// piscadinha de destaque, pra dar feedback imediato de que a troca funcionou.
-function aplicarNovaDataNaTela(taskId, novaData, elementoClicado) {
+// Atualiza o(s) pill(s) da data NA HORA (texto + cor por prazo), com uma
+// piscadinha de destaque, pra dar feedback imediato antes mesmo do servidor responder.
+function aplicarEstiloDataNosPills(taskId, data) {
+  const estilo = estiloDataEsforco(data);
   document.querySelectorAll(`.tarefas-data-editavel[data-task-id="${taskId}"]`).forEach(el => {
-    el.textContent = formatDataPorExtenso(novaData);
-    el.setAttribute("onclick", `abrirEdicaoData(${taskId}, '${novaData}', this)`);
+    el.textContent = formatDataPorExtenso(data);
+    el.setAttribute("onclick", `abrirEdicaoData(${taskId}, '${data}', this)`);
+    if (el.classList.contains("tarefas-prazo-pill")) {
+      el.style.background = estilo.bg;
+      el.style.color = estilo.fg;
+    }
     el.classList.add("pill-atualizado");
     setTimeout(() => el.classList.remove("pill-atualizado"), 600);
   });
-
-  // Só no Esforço de hoje: se a nova data é futura (depois de hoje), essa tarefa não
-  // entra mais no esforço de hoje — some o card inteiro depois de 1 segundo.
-  const hojeISO = new Date().toLocaleDateString("sv-SE");
-  if (tarefasModalTipo === "geral" && tarefasModalChave === "esforco" && novaData > hojeISO) {
-    const card = elementoClicado.closest(".tarefas-lista-item");
-    if (card) {
-      setTimeout(() => {
-        card.classList.add("tarefas-lista-item-saindo");
-        setTimeout(() => card.remove(), 300);
-      }, 1000);
-    }
-  }
 }
 
 // Atualiza o pill da etapa NA HORA, com a mesma piscadinha de destaque.
-function aplicarNovaEtapaNaTela(taskId, novaEtapa, elementoClicado) {
+function aplicarNovaEtapaNaTela(taskId, novaEtapa) {
   const estilo = estiloDaEtapa(novaEtapa);
   document.querySelectorAll(`.tarefas-etapa-pill[data-task-id="${taskId}"]`).forEach(el => {
     el.textContent = novaEtapa;
@@ -1442,13 +1441,64 @@ function aplicarNovaEtapaNaTela(taskId, novaEtapa, elementoClicado) {
   });
 }
 
-async function salvarNovaData(taskId, novaData) {
-  const resultado = await chamarAcaoRunrun("trocarDataRunrun", { taskId, novaData });
-  if (!resultado.ok) {
-    alert("Não consegui trocar a data dessa tarefa: " + (resultado.error || "erro desconhecido"));
+// Tira a tarefa de esforcoHojeTarefas/esforcoHojePorDesigner na hora (sem esperar o
+// servidor), pra o total e a quantidade "debaixo do nome" já descerem na hora.
+function removerTarefaDoEsforco(taskId) {
+  Object.keys(esforcoHojeTarefas).forEach(nome => {
+    const lista = esforcoHojeTarefas[nome] || [];
+    const idx = lista.findIndex(t => t.id === taskId);
+    if (idx === -1) return;
+    const [removida] = lista.splice(idx, 1);
+    esforcoHojePorDesigner[nome] = Math.max(0, (esforcoHojePorDesigner[nome] || 0) - (removida.estimativaMin || 0));
+  });
+}
+
+async function salvarNovaData(taskId, novaData, ancoraEl) {
+  const hojeISO = new Date().toLocaleDateString("sv-SE");
+
+  // 1) Atualiza a tela NA HORA (pill + cor), sem esperar o servidor.
+  aplicarEstiloDataNosPills(taskId, novaData);
+
+  // 2) Se estiver no Esforço de hoje e a nova data for futura, essa tarefa não entra
+  // mais no esforço — some o card com animação depois de 1s, e já desconta do total.
+  const estaNoEsforco = tarefasModalTipo === "geral" && tarefasModalChave === "esforco";
+  const vaiSairDoEsforco = estaNoEsforco && novaData > hojeISO;
+  const card = vaiSairDoEsforco ? ancoraEl.closest(".tarefas-lista-item") : null;
+  let timeoutSumir = null, timeoutRemover = null;
+  if (card) {
+    timeoutSumir = setTimeout(() => {
+      card.classList.add("tarefas-lista-item-saindo");
+      timeoutRemover = setTimeout(() => {
+        card.remove();
+        removerTarefaDoEsforco(taskId);
+        renderTarefasModal(); // já recalcula o total do time e a quantidade de cada designer
+      }, 300);
+    }, 1000);
   }
-  // Atualiza os dados por baixo dos panos (sem forçar o card já animado a sumir de novo).
-  await loadRunrunAtividades();
+
+  // 3) Chama o Runrun.it em segundo plano — a tela já foi atualizada, não espera aqui.
+  const resultado = await chamarAcaoRunrun("trocarDataRunrun", { taskId, novaData });
+
+  if (!resultado.ok) {
+    // Deu errado: cancela qualquer animação pendente e recarrega os dados de
+    // verdade do servidor (que ainda tem a data antiga) — a tarefa volta sozinha.
+    clearTimeout(timeoutSumir);
+    clearTimeout(timeoutRemover);
+    alert("Não consegui trocar a data dessa tarefa — ela foi restaurada: " + (resultado.error || "erro desconhecido"));
+    await loadRunrunAtividades();
+    renderTarefasModal();
+    return;
+  }
+
+  // Deu certo — atualiza o resto do painel em segundo plano. Se não tinha uma
+  // animação de saída em andamento aqui (outras abas, ou tarefa que continua no
+  // Esforço), atualiza o pop-up assim que os dados voltarem; se já tinha, quem
+  // cuida do re-render é a própria animação, lá em cima.
+  if (!card) {
+    loadRunrunAtividades().then(() => renderTarefasModal());
+  } else {
+    loadRunrunAtividades();
+  }
 }
 
 async function moverEtapaTarefa(taskId, chaveColuna) {
@@ -1457,7 +1507,9 @@ async function moverEtapaTarefa(taskId, chaveColuna) {
     alert("Não consegui mudar a etapa dessa tarefa: " + (resultado.error || "erro desconhecido"));
   }
   await loadRunrunAtividades();
+  renderTarefasModal();
 }
+
 
 // Junta uma categoria (atrasadas/hoje) de todos os designers rastreados, ordenada por data.
 function tarefasDoTimeInteiro(categoria) {
