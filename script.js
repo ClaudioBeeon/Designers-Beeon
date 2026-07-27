@@ -1226,6 +1226,8 @@ function renderTarefaRow(t, categoria, mostrarSubtitulo) {
     badgeEntidadeHtml = `<span class="tarefas-badge" style="background:${clienteCol.bg};color:${clienteCol.fg};">${t.cliente}</span>`;
   }
   const badgeStatusHtml = t.status ? `<span class="tarefas-badge tarefas-badge-status">${t.status}</span>` : "";
+  const podeMoverPrioridade = t.id && t.status === "Pendentes";
+  const dataId = "data-tarefa-" + (t.id || Math.random().toString(36).slice(2));
   return `
     <div class="tarefas-lista-item">
       <div class="tarefas-lista-item-info">
@@ -1233,12 +1235,69 @@ function renderTarefaRow(t, categoria, mostrarSubtitulo) {
         <div class="tarefas-lista-item-badges">${badgeEntidadeHtml}${badgeStatusHtml}</div>
       </div>
       <div class="tarefas-lista-item-right">
-        <span class="tarefas-data-texto">${formatDataPorExtenso(t.data)}</span>
+        ${t.id
+          ? `<span class="tarefas-data-texto tarefas-data-editavel" id="${dataId}" title="Clique pra trocar a data" onclick="abrirEdicaoData(${t.id}, '${t.data}', '${dataId}')">${formatDataPorExtenso(t.data)}</span>`
+          : `<span class="tarefas-data-texto">${formatDataPorExtenso(t.data)}</span>`
+        }
         <span class="tarefas-prazo-pill" style="background:${prazo.bg};color:${prazo.cor};">${prazo.texto}</span>
+        ${podeMoverPrioridade ? `<button class="tarefas-mover-btn" onclick="moverParaPrioridades(${t.id}, this)" title="Mover essa tarefa pra Prioridades no Runrun.it">Mover p/ Prioridades</button>` : ""}
         <a class="tarefas-lista-item-link" href="${t.link}" target="_blank" rel="noopener" title="Abrir no Runrun.it"><i class="ti ti-external-link"></i></a>
       </div>
     </div>
   `;
+}
+
+// ============ EDITAR TAREFA DIRETO NO RUNRUN.IT (nova data / mover pra Prioridades) ============
+
+async function chamarAcaoRunrun(acao, dados) {
+  try {
+    const res = await fetch(WEBAPP_URL, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify(Object.assign({ acao }, dados))
+    });
+    return await res.json();
+  } catch (err) {
+    console.error("Falha ao chamar ação no Runrun.it:", err);
+    return { ok: false, error: "Falha de conexão com o painel." };
+  }
+}
+
+// Troca o texto da data por um campo de calendário, pra escolher a nova data ali mesmo.
+function abrirEdicaoData(taskId, dataAtual, spanId) {
+  const span = document.getElementById(spanId);
+  if (!span) return;
+  span.outerHTML = `<input type="date" class="tarefas-data-input" id="${spanId}" value="${dataAtual}" onchange="salvarNovaData(${taskId}, this.value, '${spanId}')" onclick="event.stopPropagation()">`;
+  const input = document.getElementById(spanId);
+  if (input) input.focus();
+}
+
+async function salvarNovaData(taskId, novaData, spanId) {
+  const input = document.getElementById(spanId);
+  if (input) input.disabled = true;
+  const resultado = await chamarAcaoRunrun("trocarDataRunrun", { taskId, novaData });
+  if (!resultado.ok) {
+    alert("Não consegui trocar a data dessa tarefa: " + (resultado.error || "erro desconhecido"));
+    if (input) input.disabled = false;
+    return;
+  }
+  await loadRunrunAtividades();
+  renderTarefasModal();
+}
+
+async function moverParaPrioridades(taskId, botao) {
+  const textoOriginal = botao.textContent;
+  botao.disabled = true;
+  botao.textContent = "Movendo...";
+  const resultado = await chamarAcaoRunrun("moverEtapaRunrun", { taskId, chaveColuna: "prioridades" });
+  if (!resultado.ok) {
+    alert("Não consegui mover essa tarefa pra Prioridades: " + (resultado.error || "erro desconhecido"));
+    botao.disabled = false;
+    botao.textContent = textoOriginal;
+    return;
+  }
+  await loadRunrunAtividades();
+  renderTarefasModal();
 }
 
 // Junta uma categoria (atrasadas/hoje) de todos os designers rastreados, ordenada por data.
