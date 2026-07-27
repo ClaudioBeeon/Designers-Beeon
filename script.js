@@ -1226,8 +1226,6 @@ function renderTarefaRow(t, categoria, mostrarSubtitulo) {
     badgeEntidadeHtml = `<span class="tarefas-badge" style="background:${clienteCol.bg};color:${clienteCol.fg};">${t.cliente}</span>`;
   }
   const badgeStatusHtml = t.status ? `<span class="tarefas-badge tarefas-badge-status">${t.status}</span>` : "";
-  const podeMoverPrioridade = t.id && t.status === "Pendentes";
-  const dataId = "data-tarefa-" + (t.id || Math.random().toString(36).slice(2));
   return `
     <div class="tarefas-lista-item">
       <div class="tarefas-lista-item-info">
@@ -1235,12 +1233,9 @@ function renderTarefaRow(t, categoria, mostrarSubtitulo) {
         <div class="tarefas-lista-item-badges">${badgeEntidadeHtml}${badgeStatusHtml}</div>
       </div>
       <div class="tarefas-lista-item-right">
-        ${t.id
-          ? `<span class="tarefas-data-texto tarefas-data-editavel" id="${dataId}" title="Clique pra trocar a data" onclick="abrirEdicaoData(${t.id}, '${t.data}', '${dataId}')">${formatDataPorExtenso(t.data)}</span>`
-          : `<span class="tarefas-data-texto">${formatDataPorExtenso(t.data)}</span>`
-        }
+        ${renderDataEditavelHtml(t)}
         <span class="tarefas-prazo-pill" style="background:${prazo.bg};color:${prazo.cor};">${prazo.texto}</span>
-        ${podeMoverPrioridade ? `<button class="tarefas-mover-btn" onclick="moverParaPrioridades(${t.id}, this)" title="Mover essa tarefa pra Prioridades no Runrun.it">Mover p/ Prioridades</button>` : ""}
+        ${renderBotaoMoverPrioridadeHtml(t)}
         <a class="tarefas-lista-item-link" href="${t.link}" target="_blank" rel="noopener" title="Abrir no Runrun.it"><i class="ti ti-external-link"></i></a>
       </div>
     </div>
@@ -1248,6 +1243,27 @@ function renderTarefaRow(t, categoria, mostrarSubtitulo) {
 }
 
 // ============ EDITAR TAREFA DIRETO NO RUNRUN.IT (nova data / mover pra Prioridades) ============
+// Usado em qualquer lugar que mostre a data de uma tarefa: aba de designer, aba de
+// cliente, KPIs gerais (atrasadas/hoje/prioridades/mês) e Esforço diário.
+
+// Monta o pedacinho de HTML da data clicável (Entrega Desejada) — mesma aparência em todo lugar.
+function renderDataEditavelHtml(t) {
+  if (!t.id || !t.data) {
+    return `<div class="tarefas-data-wrap"><div class="tarefas-data-label">Entrega desejada</div><span class="tarefas-data-texto">${t.data ? formatDataPorExtenso(t.data) : "Sem data"}</span></div>`;
+  }
+  return `
+    <div class="tarefas-data-wrap">
+      <div class="tarefas-data-label">Entrega desejada</div>
+      <span class="tarefas-data-texto tarefas-data-editavel" title="Clique pra trocar a Entrega Desejada" onclick="abrirEdicaoData(${t.id}, '${t.data}', this)">${formatDataPorExtenso(t.data)}</span>
+    </div>
+  `;
+}
+
+// Monta o botão "Mover p/ Prioridades" — só aparece se a tarefa estiver em Pendentes.
+function renderBotaoMoverPrioridadeHtml(t) {
+  if (!t.id || t.status !== "Pendentes") return "";
+  return `<button class="tarefas-mover-btn" onclick="moverParaPrioridades(${t.id}, this)" title="Mover essa tarefa pra Prioridades no Runrun.it">Mover p/ Prioridades</button>`;
+}
 
 async function chamarAcaoRunrun(acao, dados) {
   try {
@@ -1263,22 +1279,87 @@ async function chamarAcaoRunrun(acao, dados) {
   }
 }
 
-// Troca o texto da data por um campo de calendário, pra escolher a nova data ali mesmo.
-function abrirEdicaoData(taskId, dataAtual, spanId) {
-  const span = document.getElementById(spanId);
-  if (!span) return;
-  span.outerHTML = `<input type="date" class="tarefas-data-input" id="${spanId}" value="${dataAtual}" onchange="salvarNovaData(${taskId}, this.value, '${spanId}')" onclick="event.stopPropagation()">`;
-  const input = document.getElementById(spanId);
-  if (input) input.focus();
+// ---- Calendário flutuante ----
+let dataPickerAberto = null; // { painel, fecharAoClicarFora } — só um aberto por vez
+
+function fecharDataPicker() {
+  if (!dataPickerAberto) return;
+  dataPickerAberto.painel.remove();
+  document.removeEventListener("mousedown", dataPickerAberto.fecharAoClicarFora);
+  dataPickerAberto = null;
 }
 
-async function salvarNovaData(taskId, novaData, spanId) {
-  const input = document.getElementById(spanId);
-  if (input) input.disabled = true;
+// Abre um mini-calendário flutuante logo abaixo do texto da data clicado,
+// pra escolher a nova data visualmente (em vez do calendário feio do navegador).
+function abrirEdicaoData(taskId, dataAtual, ancoraEl) {
+  fecharDataPicker();
+
+  const [anoIni, mesIni] = dataAtual.split("-").map(Number);
+  let mesAtual = mesIni - 1; // JS usa mês de 0 a 11
+  let anoAtual = anoIni;
+
+  const painel = document.createElement("div");
+  painel.className = "data-picker-panel";
+  document.body.appendChild(painel);
+
+  function renderPainel() {
+    const nomesMes = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
+    const primeiroDiaSemana = new Date(anoAtual, mesAtual, 1).getDay();
+    const diasNoMes = new Date(anoAtual, mesAtual + 1, 0).getDate();
+    const hojeISO = new Date().toLocaleDateString("sv-SE");
+
+    let celulas = "";
+    for (let i = 0; i < primeiroDiaSemana; i++) celulas += `<span class="data-picker-dia vazio"></span>`;
+    for (let dia = 1; dia <= diasNoMes; dia++) {
+      const iso = anoAtual + "-" + String(mesAtual + 1).padStart(2, "0") + "-" + String(dia).padStart(2, "0");
+      const classes = "data-picker-dia" + (iso === dataAtual ? " selecionado" : "") + (iso === hojeISO ? " hoje" : "");
+      celulas += `<button type="button" class="${classes}" data-iso="${iso}">${dia}</button>`;
+    }
+
+    painel.innerHTML = `
+      <div class="data-picker-header">
+        <button type="button" class="data-picker-nav" data-nav="-1"><i class="ti ti-chevron-left"></i></button>
+        <div class="data-picker-mes">${nomesMes[mesAtual]} ${anoAtual}</div>
+        <button type="button" class="data-picker-nav" data-nav="1"><i class="ti ti-chevron-right"></i></button>
+      </div>
+      <div class="data-picker-semana"><span>D</span><span>S</span><span>T</span><span>Q</span><span>Q</span><span>S</span><span>S</span></div>
+      <div class="data-picker-grid">${celulas}</div>
+    `;
+
+    painel.querySelectorAll("[data-nav]").forEach(btn => {
+      btn.onclick = () => {
+        mesAtual += Number(btn.dataset.nav);
+        if (mesAtual < 0) { mesAtual = 11; anoAtual--; }
+        if (mesAtual > 11) { mesAtual = 0; anoAtual++; }
+        renderPainel();
+      };
+    });
+    painel.querySelectorAll(".data-picker-dia:not(.vazio)").forEach(btn => {
+      btn.onclick = () => {
+        const isoEscolhido = btn.dataset.iso;
+        fecharDataPicker();
+        salvarNovaData(taskId, isoEscolhido);
+      };
+    });
+  }
+  renderPainel();
+
+  // Posiciona o painel logo abaixo do texto da data que foi clicado.
+  const rect = ancoraEl.getBoundingClientRect();
+  painel.style.top = (rect.bottom + window.scrollY + 6) + "px";
+  painel.style.left = Math.min(rect.left + window.scrollX, window.innerWidth - 260) + "px";
+
+  const fecharAoClicarFora = (ev) => {
+    if (!painel.contains(ev.target) && ev.target !== ancoraEl) fecharDataPicker();
+  };
+  setTimeout(() => document.addEventListener("mousedown", fecharAoClicarFora), 0);
+  dataPickerAberto = { painel, fecharAoClicarFora };
+}
+
+async function salvarNovaData(taskId, novaData) {
   const resultado = await chamarAcaoRunrun("trocarDataRunrun", { taskId, novaData });
   if (!resultado.ok) {
     alert("Não consegui trocar a data dessa tarefa: " + (resultado.error || "erro desconhecido"));
-    if (input) input.disabled = false;
     return;
   }
   await loadRunrunAtividades();
@@ -1353,7 +1434,9 @@ function renderEsforcoRow(t, designer) {
         </div>
       </div>
       <div class="tarefas-lista-item-right">
+        ${renderDataEditavelHtml(t)}
         <span class="tarefas-prazo-pill" style="background:#EEF6E7;color:#5A9A34;">${formatTempo(t.estimativaMin)}</span>
+        ${renderBotaoMoverPrioridadeHtml(t)}
         <a class="tarefas-lista-item-link" href="${t.link}" target="_blank" rel="noopener" title="Abrir no Runrun.it"><i class="ti ti-external-link"></i></a>
       </div>
     </div>
