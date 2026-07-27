@@ -1265,13 +1265,17 @@ function estiloDaEtapa(nomeEtapa) {
 
 // Monta o pedacinho de HTML da data clicável (Entrega Desejada) — mesma aparência em todo lugar.
 function renderDataEditavelHtml(t) {
+  const publicacaoHtml = t.dataPublicacao
+    ? `<div class="tarefas-data-publicacao" title="Data de Publicação (Runrun.it)"><i class="ti ti-calendar-event"></i> ${formatDataPorExtenso(t.dataPublicacao)}</div>`
+    : "";
   if (!t.id || !t.data) {
-    return `<div class="tarefas-data-wrap"><div class="tarefas-data-label">Entrega desejada</div><span class="tarefas-data-texto">${t.data ? formatDataPorExtenso(t.data) : "Sem data"}</span></div>`;
+    return `<div class="tarefas-data-wrap"><div class="tarefas-data-label">Entrega desejada</div><span class="tarefas-data-texto">${t.data ? formatDataPorExtenso(t.data) : "Sem data"}</span>${publicacaoHtml}</div>`;
   }
   return `
     <div class="tarefas-data-wrap">
       <div class="tarefas-data-label">Entrega desejada</div>
       <span class="tarefas-data-texto tarefas-data-editavel" data-task-id="${t.id}" title="Clique pra trocar a Entrega Desejada" onclick="abrirEdicaoData(${t.id}, '${t.data}', this)">${formatDataPorExtenso(t.data)}</span>
+      ${publicacaoHtml}
     </div>
   `;
 }
@@ -1537,6 +1541,9 @@ function tarefasMesEAtrasadasDoTime() {
 
 function renderEsforcoRow(t, designer) {
   const col = getColor(designer);
+  const publicacaoHtml = t.dataPublicacao
+    ? `<span class="tarefas-badge tarefas-badge-publicacao" title="Data de Publicação (Runrun.it)"><i class="ti ti-calendar-event"></i> ${formatDataPorExtenso(t.dataPublicacao)}</span>`
+    : "";
   return `
     <div class="tarefas-lista-item" data-task-id="${t.id || ""}">
       <div class="tarefas-lista-item-info">
@@ -1544,6 +1551,7 @@ function renderEsforcoRow(t, designer) {
         <div class="tarefas-lista-item-badges">
           <span class="tarefas-badge" style="background:${col.bg};color:${col.fg};">${designer}</span>
           <span class="tarefas-badge" style="background:${COLOR_PALETTE[Math.abs(hashStr(t.cliente)) % COLOR_PALETTE.length].bg};color:${COLOR_PALETTE[Math.abs(hashStr(t.cliente)) % COLOR_PALETTE.length].fg};">${t.cliente}</span>
+          ${publicacaoHtml}
         </div>
       </div>
       <div class="tarefas-lista-item-right">
