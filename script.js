@@ -63,6 +63,7 @@ let tarefasModalCategoria = "atrasadas";
 let esforcoHojePorDesigner = {}; // minutos estimados no dia, por designer (baseado no Gantt do Runrun.it)
 let esforcoHojeTarefas = {}; // lista de tarefas que compõem esse esforço, por designer
 let esforcoModalFiltroDesigner = null; // quando definido, o pop-up de esforço mostra só as tarefas dessa pessoa
+let esforcoModalOrdenacao = "data"; // "data" (padrão, mais antiga primeiro), "tempo" ou "aba"
 let currentPage = "designers";
 let designerHomeOffice = {};
 let sortClientesAZ = false;
@@ -1170,6 +1171,10 @@ function selecionarDesignerEsforco(nome) {
   esforcoModalFiltroDesigner = esforcoModalFiltroDesigner === nome ? null : nome;
   renderTarefasModal();
 }
+function ordenarEsforco(modo) {
+  esforcoModalOrdenacao = modo;
+  renderTarefasModal();
+}
 function closeTarefasModal() { document.getElementById("tarefas-modal-overlay").classList.add("hidden"); }
 function trocarAbaTarefasModal(categoria) {
   tarefasModalCategoria = categoria;
@@ -1227,7 +1232,7 @@ function renderTarefaRow(t, categoria, mostrarSubtitulo) {
   }
   const badgeStatusHtml = t.status ? `<span class="tarefas-badge tarefas-badge-status">${t.status}</span>` : "";
   return `
-    <div class="tarefas-lista-item">
+    <div class="tarefas-lista-item" data-task-id="${t.id || ""}">
       <div class="tarefas-lista-item-info">
         <div class="tarefas-lista-item-titulo">${t.urgente ? '<i class="ti ti-flag-filled" style="color:#C0392B;font-size:11px;"></i> ' : ""}${t.titulo}</div>
         <div class="tarefas-lista-item-badges">${badgeEntidadeHtml}${badgeStatusHtml}</div>
@@ -1235,16 +1240,28 @@ function renderTarefaRow(t, categoria, mostrarSubtitulo) {
       <div class="tarefas-lista-item-right">
         ${renderDataEditavelHtml(t)}
         <span class="tarefas-prazo-pill" style="background:${prazo.bg};color:${prazo.cor};">${prazo.texto}</span>
-        ${renderBotaoMoverPrioridadeHtml(t)}
+        ${renderEtapaPillHtml(t)}
         <a class="tarefas-lista-item-link" href="${t.link}" target="_blank" rel="noopener" title="Abrir no Runrun.it"><i class="ti ti-external-link"></i></a>
       </div>
     </div>
   `;
 }
 
-// ============ EDITAR TAREFA DIRETO NO RUNRUN.IT (nova data / mover pra Prioridades) ============
-// Usado em qualquer lugar que mostre a data de uma tarefa: aba de designer, aba de
-// cliente, KPIs gerais (atrasadas/hoje/prioridades/mês) e Esforço diário.
+// ============ EDITAR TAREFA DIRETO NO RUNRUN.IT (nova data / mudar de etapa) ============
+// Usado em qualquer lugar que mostre uma tarefa: aba de designer, aba de cliente,
+// KPIs gerais (atrasadas/hoje/prioridades/mês) e Esforço diário.
+
+const ETAPAS_MOVIVEIS = [
+  { chave: "pendentes", label: "Pendentes", bg: "#F1EFE8", fg: "#78766e" },
+  { chave: "prioridades", label: "Prioridades", bg: "#E6F1FB", fg: "#185FA5" },
+  { chave: "fazendo", label: "Fazendo", bg: "#FDF1DC", fg: "#B8791B" },
+  { chave: "revisao", label: "Revisão", bg: "#F3EEFB", fg: "#6B3FA0" },
+  { chave: "ajustes", label: "Ajuste/Refação", bg: "#FCE9EE", fg: "#C0396B" }
+];
+function estiloDaEtapa(nomeEtapa) {
+  const achada = ETAPAS_MOVIVEIS.find(e => e.label === nomeEtapa);
+  return achada || { bg: "#F1EFE8", fg: "#78766e" };
+}
 
 // Monta o pedacinho de HTML da data clicável (Entrega Desejada) — mesma aparência em todo lugar.
 function renderDataEditavelHtml(t) {
@@ -1254,7 +1271,7 @@ function renderDataEditavelHtml(t) {
   return `
     <div class="tarefas-data-wrap">
       <div class="tarefas-data-label">Entrega desejada</div>
-      <span class="tarefas-data-texto tarefas-data-editavel" title="Clique pra trocar a Entrega Desejada" onclick="abrirEdicaoData(${t.id}, '${t.data}', this)">${formatDataPorExtenso(t.data)}</span>
+      <span class="tarefas-data-texto tarefas-data-editavel" data-task-id="${t.id}" title="Clique pra trocar a Entrega Desejada" onclick="abrirEdicaoData(${t.id}, '${t.data}', this)">${formatDataPorExtenso(t.data)}</span>
     </div>
   `;
 }
@@ -1262,14 +1279,16 @@ function renderDataEditavelHtml(t) {
 // Mesma data (Entrega Desejada), só que numa caixinha igual à do tempo estimado —
 // usado no Esforço de hoje, onde a data é a mesma usada pra calcular o esforço.
 function renderDataPillHtml(t) {
-  if (!t.id || !t.data) return `<span class="tarefas-prazo-pill" style="background:#F1EFE8;color:#78766e;">Sem data</span>`;
-  return `<span class="tarefas-prazo-pill tarefas-data-editavel" style="background:#EEF6E7;color:#5A9A34;" title="Clique pra trocar a Entrega Desejada" onclick="abrirEdicaoData(${t.id}, '${t.data}', this)">${formatDataPorExtenso(t.data)}</span>`;
+  if (!t.id || !t.data) return `<span class="tarefas-prazo-pill tarefas-pill-largura" style="background:#F1EFE8;color:#78766e;">Sem data</span>`;
+  return `<span class="tarefas-prazo-pill tarefas-pill-largura tarefas-data-editavel" data-task-id="${t.id}" style="background:#EEF6E7;color:#5A9A34;" title="Clique pra trocar a Entrega Desejada" onclick="abrirEdicaoData(${t.id}, '${t.data}', this)">${formatDataPorExtenso(t.data)}</span>`;
 }
 
-// Monta o botão "Mover p/ Prioridades" — só aparece se a tarefa estiver em Pendentes.
-function renderBotaoMoverPrioridadeHtml(t) {
-  if (!t.id || t.status !== "Pendentes") return "";
-  return `<button class="tarefas-mover-btn" onclick="moverParaPrioridades(${t.id}, this)" title="Mover essa tarefa pra Prioridades no Runrun.it">Mover p/ Prioridades</button>`;
+// Pill que mostra a etapa/aba atual da tarefa no Runrun.it (Pendentes, Prioridades,
+// Fazendo, Revisão, Ajuste/Refação...) — clicável pra trocar de etapa.
+function renderEtapaPillHtml(t) {
+  const estilo = estiloDaEtapa(t.status);
+  if (!t.id) return `<span class="tarefas-prazo-pill tarefas-etapa-pill" style="background:${estilo.bg};color:${estilo.fg};">${t.status || "Sem etapa"}</span>`;
+  return `<span class="tarefas-prazo-pill tarefas-etapa-pill tarefas-data-editavel" data-task-id="${t.id}" style="background:${estilo.bg};color:${estilo.fg};" title="Clique pra mudar a etapa" onclick="abrirSeletorEtapa(${t.id}, '${t.status}', this)">${t.status || "Sem etapa"}</span>`;
 }
 
 async function chamarAcaoRunrun(acao, dados) {
@@ -1286,28 +1305,41 @@ async function chamarAcaoRunrun(acao, dados) {
   }
 }
 
-// ---- Calendário flutuante ----
-let dataPickerAberto = null; // { painel, fecharAoClicarFora } — só um aberto por vez
+// ---- Painel flutuante compartilhado (calendário e seletor de etapa usam o mesmo mecanismo) ----
+let painelFlutuanteAberto = null; // { painel, fecharAoClicarFora } — só um aberto por vez
 
-function fecharDataPicker() {
-  if (!dataPickerAberto) return;
-  dataPickerAberto.painel.remove();
-  document.removeEventListener("mousedown", dataPickerAberto.fecharAoClicarFora);
-  dataPickerAberto = null;
+function fecharPainelFlutuante() {
+  if (!painelFlutuanteAberto) return;
+  painelFlutuanteAberto.painel.remove();
+  document.removeEventListener("mousedown", painelFlutuanteAberto.fecharAoClicarFora);
+  painelFlutuanteAberto = null;
 }
 
-// Abre um mini-calendário flutuante logo abaixo do texto da data clicado,
-// pra escolher a nova data visualmente (em vez do calendário feio do navegador).
-function abrirEdicaoData(taskId, dataAtual, ancoraEl) {
-  fecharDataPicker();
+function abrirPainelFlutuante(ancoraEl, classe) {
+  fecharPainelFlutuante();
+  const painel = document.createElement("div");
+  painel.className = classe;
+  document.body.appendChild(painel);
 
+  const rect = ancoraEl.getBoundingClientRect();
+  painel.style.top = (rect.bottom + window.scrollY + 6) + "px";
+  painel.style.left = Math.min(rect.left + window.scrollX, window.innerWidth - 260) + "px";
+
+  const fecharAoClicarFora = (ev) => {
+    if (!painel.contains(ev.target) && ev.target !== ancoraEl) fecharPainelFlutuante();
+  };
+  setTimeout(() => document.addEventListener("mousedown", fecharAoClicarFora), 0);
+  painelFlutuanteAberto = { painel, fecharAoClicarFora };
+  return painel;
+}
+
+// Abre um mini-calendário flutuante logo abaixo da data clicada, pra escolher a
+// nova Entrega Desejada visualmente (em vez do calendário feio do navegador).
+function abrirEdicaoData(taskId, dataAtual, ancoraEl) {
+  const painel = abrirPainelFlutuante(ancoraEl, "data-picker-panel");
   const [anoIni, mesIni] = dataAtual.split("-").map(Number);
   let mesAtual = mesIni - 1; // JS usa mês de 0 a 11
   let anoAtual = anoIni;
-
-  const painel = document.createElement("div");
-  painel.className = "data-picker-panel";
-  document.body.appendChild(painel);
 
   function renderPainel() {
     const nomesMes = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
@@ -1344,48 +1376,87 @@ function abrirEdicaoData(taskId, dataAtual, ancoraEl) {
     painel.querySelectorAll(".data-picker-dia:not(.vazio)").forEach(btn => {
       btn.onclick = () => {
         const isoEscolhido = btn.dataset.iso;
-        fecharDataPicker();
+        fecharPainelFlutuante();
+        aplicarNovaDataNaTela(taskId, isoEscolhido, ancoraEl);
         salvarNovaData(taskId, isoEscolhido);
       };
     });
   }
   renderPainel();
+}
 
-  // Posiciona o painel logo abaixo do texto da data que foi clicado.
-  const rect = ancoraEl.getBoundingClientRect();
-  painel.style.top = (rect.bottom + window.scrollY + 6) + "px";
-  painel.style.left = Math.min(rect.left + window.scrollX, window.innerWidth - 260) + "px";
+// Abre um mini-menu flutuante com as etapas disponíveis, pra mover a tarefa.
+function abrirSeletorEtapa(taskId, etapaAtual, ancoraEl) {
+  const painel = abrirPainelFlutuante(ancoraEl, "etapa-picker-panel");
+  painel.innerHTML = ETAPAS_MOVIVEIS.map(e => `
+    <button type="button" class="etapa-picker-item${e.label === etapaAtual ? " atual" : ""}" data-chave="${e.chave}">
+      <span class="etapa-picker-dot" style="background:${e.fg};"></span>${e.label}
+    </button>
+  `).join("");
+  painel.querySelectorAll(".etapa-picker-item").forEach(btn => {
+    btn.onclick = () => {
+      const chaveEscolhida = btn.dataset.chave;
+      const etapaEscolhida = ETAPAS_MOVIVEIS.find(e => e.chave === chaveEscolhida);
+      fecharPainelFlutuante();
+      if (etapaEscolhida.label === etapaAtual) return;
+      aplicarNovaEtapaNaTela(taskId, etapaEscolhida.label, ancoraEl);
+      moverEtapaTarefa(taskId, chaveEscolhida);
+    };
+  });
+}
 
-  const fecharAoClicarFora = (ev) => {
-    if (!painel.contains(ev.target) && ev.target !== ancoraEl) fecharDataPicker();
-  };
-  setTimeout(() => document.addEventListener("mousedown", fecharAoClicarFora), 0);
-  dataPickerAberto = { painel, fecharAoClicarFora };
+// Atualiza o pill da data NA HORA (sem esperar o servidor responder), com uma
+// piscadinha de destaque, pra dar feedback imediato de que a troca funcionou.
+function aplicarNovaDataNaTela(taskId, novaData, elementoClicado) {
+  document.querySelectorAll(`.tarefas-data-editavel[data-task-id="${taskId}"]`).forEach(el => {
+    el.textContent = formatDataPorExtenso(novaData);
+    el.setAttribute("onclick", `abrirEdicaoData(${taskId}, '${novaData}', this)`);
+    el.classList.add("pill-atualizado");
+    setTimeout(() => el.classList.remove("pill-atualizado"), 600);
+  });
+
+  // Só no Esforço de hoje: se a nova data é futura (depois de hoje), essa tarefa não
+  // entra mais no esforço de hoje — some o card inteiro depois de 1 segundo.
+  const hojeISO = new Date().toLocaleDateString("sv-SE");
+  if (tarefasModalTipo === "geral" && tarefasModalChave === "esforco" && novaData > hojeISO) {
+    const card = elementoClicado.closest(".tarefas-lista-item");
+    if (card) {
+      setTimeout(() => {
+        card.classList.add("tarefas-lista-item-saindo");
+        setTimeout(() => card.remove(), 300);
+      }, 1000);
+    }
+  }
+}
+
+// Atualiza o pill da etapa NA HORA, com a mesma piscadinha de destaque.
+function aplicarNovaEtapaNaTela(taskId, novaEtapa, elementoClicado) {
+  const estilo = estiloDaEtapa(novaEtapa);
+  document.querySelectorAll(`.tarefas-etapa-pill[data-task-id="${taskId}"]`).forEach(el => {
+    el.textContent = novaEtapa;
+    el.style.background = estilo.bg;
+    el.style.color = estilo.fg;
+    el.setAttribute("onclick", `abrirSeletorEtapa(${taskId}, '${novaEtapa}', this)`);
+    el.classList.add("pill-atualizado");
+    setTimeout(() => el.classList.remove("pill-atualizado"), 600);
+  });
 }
 
 async function salvarNovaData(taskId, novaData) {
   const resultado = await chamarAcaoRunrun("trocarDataRunrun", { taskId, novaData });
   if (!resultado.ok) {
     alert("Não consegui trocar a data dessa tarefa: " + (resultado.error || "erro desconhecido"));
-    return;
   }
+  // Atualiza os dados por baixo dos panos (sem forçar o card já animado a sumir de novo).
   await loadRunrunAtividades();
-  renderTarefasModal();
 }
 
-async function moverParaPrioridades(taskId, botao) {
-  const textoOriginal = botao.textContent;
-  botao.disabled = true;
-  botao.textContent = "Movendo...";
-  const resultado = await chamarAcaoRunrun("moverEtapaRunrun", { taskId, chaveColuna: "prioridades" });
+async function moverEtapaTarefa(taskId, chaveColuna) {
+  const resultado = await chamarAcaoRunrun("moverEtapaRunrun", { taskId, chaveColuna });
   if (!resultado.ok) {
-    alert("Não consegui mover essa tarefa pra Prioridades: " + (resultado.error || "erro desconhecido"));
-    botao.disabled = false;
-    botao.textContent = textoOriginal;
-    return;
+    alert("Não consegui mudar a etapa dessa tarefa: " + (resultado.error || "erro desconhecido"));
   }
   await loadRunrunAtividades();
-  renderTarefasModal();
 }
 
 // Junta uma categoria (atrasadas/hoje) de todos os designers rastreados, ordenada por data.
@@ -1431,19 +1502,18 @@ function tarefasMesEAtrasadasDoTime() {
 function renderEsforcoRow(t, designer) {
   const col = getColor(designer);
   return `
-    <div class="tarefas-lista-item">
+    <div class="tarefas-lista-item" data-task-id="${t.id || ""}">
       <div class="tarefas-lista-item-info">
         <div class="tarefas-lista-item-titulo">${t.titulo}</div>
         <div class="tarefas-lista-item-badges">
           <span class="tarefas-badge" style="background:${col.bg};color:${col.fg};">${designer}</span>
           <span class="tarefas-badge" style="background:${COLOR_PALETTE[Math.abs(hashStr(t.cliente)) % COLOR_PALETTE.length].bg};color:${COLOR_PALETTE[Math.abs(hashStr(t.cliente)) % COLOR_PALETTE.length].fg};">${t.cliente}</span>
-          ${t.status ? `<span class="tarefas-badge tarefas-badge-status">${t.status}</span>` : ""}
         </div>
       </div>
       <div class="tarefas-lista-item-right">
         ${renderDataPillHtml(t)}
-        <span class="tarefas-prazo-pill" style="background:#EEF6E7;color:#5A9A34;">${formatTempo(t.estimativaMin)}</span>
-        ${renderBotaoMoverPrioridadeHtml(t)}
+        <span class="tarefas-prazo-pill tarefas-pill-largura" style="background:#EEF6E7;color:#5A9A34;">${formatTempo(t.estimativaMin)}</span>
+        ${renderEtapaPillHtml(t)}
         <a class="tarefas-lista-item-link" href="${t.link}" target="_blank" rel="noopener" title="Abrir no Runrun.it"><i class="ti ti-external-link"></i></a>
       </div>
     </div>
@@ -1500,12 +1570,37 @@ function renderTarefasModalGeral(content) {
         }).join("")}
       </div>
     `;
-    const linhas = [];
+    let linhas = [];
     nomes.forEach(nome => {
       if (esforcoModalFiltroDesigner && esforcoModalFiltroDesigner !== nome) return;
-      (esforcoHojeTarefas[nome] || []).forEach(t => linhas.push(renderEsforcoRow(t, nome)));
+      (esforcoHojeTarefas[nome] || []).forEach(t => linhas.push({ t, nome }));
     });
-    listaHtml = tiraDesigners + (linhas.length ? linhas.join("") : `<div class="tarefas-lista-vazio">Nenhuma tarefa planejada pra hoje no Gantt.</div>`);
+
+    if (esforcoModalOrdenacao === "tempo") {
+      linhas.sort((a, b) => (b.t.estimativaMin || 0) - (a.t.estimativaMin || 0));
+    } else if (esforcoModalOrdenacao === "aba") {
+      const ordemEtapa = {};
+      ETAPAS_MOVIVEIS.forEach((e, i) => { ordemEtapa[e.label] = i; });
+      linhas.sort((a, b) => {
+        const ia = ordemEtapa.hasOwnProperty(a.t.status) ? ordemEtapa[a.t.status] : 99;
+        const ib = ordemEtapa.hasOwnProperty(b.t.status) ? ordemEtapa[b.t.status] : 99;
+        return ia - ib;
+      });
+    } else {
+      linhas.sort((a, b) => (a.t.data || "9999").localeCompare(b.t.data || "9999"));
+    }
+
+    const botoesOrdenar = `
+      <div class="esforco-ordenar-row">
+        <span class="esforco-ordenar-label">Ordenar por:</span>
+        <button class="sort-btn${esforcoModalOrdenacao === "data" ? " active" : ""}" onclick="ordenarEsforco('data')">Data</button>
+        <button class="sort-btn${esforcoModalOrdenacao === "tempo" ? " active" : ""}" onclick="ordenarEsforco('tempo')">Tempo</button>
+        <button class="sort-btn${esforcoModalOrdenacao === "aba" ? " active" : ""}" onclick="ordenarEsforco('aba')">Aba</button>
+      </div>
+    `;
+
+    const linhasHtml = linhas.map(({ t, nome }) => renderEsforcoRow(t, nome)).join("");
+    listaHtml = tiraDesigners + botoesOrdenar + (linhasHtml || `<div class="tarefas-lista-vazio">Nenhuma tarefa planejada pra hoje no Gantt.</div>`);
   }
 
   content.innerHTML = `
