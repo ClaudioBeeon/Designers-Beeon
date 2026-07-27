@@ -274,3 +274,39 @@ span.tarefas-prazo-pill.tarefas-data-editavel:hover { filter: brightness(0.94); 
 .data-picker-dia.selecionado { background: #0000FB; color: #fff; font-weight: 600; }
 .data-picker-dia.selecionado:hover { background: #0000FB; }
 .data-picker-dia.vazio { cursor: default; }
+
+/* ===== Ordenar Esforço de hoje ===== */
+.esforco-ordenar-row { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; }
+.esforco-ordenar-label { font-size: 11px; font-weight: 600; color: #a3a091; }
+
+/* ===== Alinhar os pills (data / tempo / etapa) em colunas, mesmo com textos de tamanhos diferentes ===== */
+.tarefas-lista-item-right { flex-wrap: nowrap; }
+.tarefas-prazo-pill.tarefas-pill-largura { min-width: 58px; text-align: center; display: inline-block; }
+.tarefas-etapa-pill { min-width: 100px; text-align: center; display: inline-block; }
+.tarefas-data-wrap { min-width: 58px; }
+
+/* ===== Menu flutuante de etapas ===== */
+.etapa-picker-panel {
+  position: absolute;
+  z-index: 5000;
+  width: 180px;
+  background: #fff;
+  border-radius: 14px;
+  box-shadow: 0 8px 24px rgba(20,20,18,0.18);
+  border: 1px solid #f1efe8;
+  padding: 6px;
+  font-family: 'Inter', sans-serif;
+}
+.etapa-picker-item { width: 100%; display: flex; align-items: center; gap: 8px; padding: 8px 10px; border: none; background: none; border-radius: 8px; cursor: pointer; font-size: 12px; font-weight: 500; color: #1a1a18; text-align: left; }
+.etapa-picker-item:hover { background: #F3F3F1; }
+.etapa-picker-item.atual { font-weight: 700; background: #F3F3F1; }
+.etapa-picker-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+
+/* ===== Animações: pill piscando ao atualizar, e card saindo da lista ===== */
+@keyframes piscarPill {
+  0% { box-shadow: 0 0 0 0 rgba(0,0,251,0.35); }
+  100% { box-shadow: 0 0 0 6px rgba(0,0,251,0); }
+}
+.pill-atualizado { animation: piscarPill .6s ease-out; }
+.tarefas-lista-item { transition: opacity .3s ease, transform .3s ease, max-height .3s ease, margin .3s ease, padding .3s ease; overflow: hidden; }
+.tarefas-lista-item-saindo { opacity: 0; transform: translateX(12px); max-height: 0; margin-bottom: 0; padding-top: 0; padding-bottom: 0; }
